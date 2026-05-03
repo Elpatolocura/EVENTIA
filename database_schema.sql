@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     following_count INTEGER NOT NULL DEFAULT 0,
     events_count INTEGER NOT NULL DEFAULT 0,
     onboarding_complete BOOLEAN NOT NULL DEFAULT false,
+    fcm_token TEXT,
+    last_seen TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
@@ -349,3 +351,60 @@ DROP TRIGGER IF EXISTS on_follow_change ON public.follows;
 CREATE TRIGGER on_follow_change
   AFTER INSERT OR DELETE ON public.follows
   FOR EACH ROW EXECUTE FUNCTION public.handle_follow_change();
+
+-- Trigger: Notify on Event Cancellation
+CREATE OR REPLACE FUNCTION public.handle_event_cancellation()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF NEW.status = 'cancelled' AND OLD.status <> 'cancelled' THEN
+    INSERT INTO public.notifications (user_id, title, message, type, related_id, action_url)
+    SELECT
+      user_id,
+      'Evento Cancelado: ' || NEW.title,
+      'Lo sentimos, el evento ha sido cancelado por el organizador.',
+      'event',
+      NEW.id,
+      '/events/' || NEW.id
+    FROM public.tickets
+    WHERE event_id = NEW.id AND status = 'active';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_event_cancelled ON public.events;
+CREATE TRIGGER on_event_cancelled
+  AFTER UPDATE ON public.events
+  FOR EACH ROW EXECUTE FUNCTION public.handle_event_cancellation();
+
+-- Trigger: Notify on New Ticket (Success)
+CREATE OR REPLACE FUNCTION public.handle_ticket_notification()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  event_name TEXT;
+BEGIN
+  SELECT title INTO event_name FROM public.events WHERE id = NEW.event_id;
+
+  INSERT INTO public.notifications (user_id, title, message, type, related_id, action_url)
+  VALUES (
+    NEW.user_id,
+    '¡Ticket Confirmado!',
+    'Tu entrada para ' || event_name || ' ya está disponible.',
+    'ticket',
+    NEW.id,
+    '/tickets'
+  );
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_ticket_created_notify ON public.tickets;
+CREATE TRIGGER on_ticket_created_notify
+  AFTER INSERT ON public.tickets
+  FOR EACH ROW EXECUTE FUNCTION public.handle_ticket_notification();

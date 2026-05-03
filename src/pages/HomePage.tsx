@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import EventCard from '@/components/EventCard';
+import EventCardSkeleton from '@/components/EventCardSkeleton';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from '@/hooks/useLocation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -391,23 +392,41 @@ const HomePage = () => {
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary fill-primary" />
-            {userPreferences.length > 0 ? t('home.recommended') || 'Recomendado para ti' : (latitude && longitude ? t('location.near_you') : t('home.popular_today'))}
+            {loading ? (
+              <div className="h-6 w-40 bg-muted animate-pulse rounded-md" />
+            ) : (
+              userPreferences.length > 0 ? t('home.recommended') || 'Recomendado para ti' : (latitude && longitude ? t('location.near_you') : t('home.popular_today'))
+            )}
           </h2>
-          <Button variant="ghost" className="text-xs font-black text-primary uppercase tracking-widest p-0 h-auto hover:bg-transparent">
-            {t('home.view_all')}
-          </Button>
+          {!loading && (
+            <Button variant="ghost" className="text-xs font-black text-primary uppercase tracking-widest p-0 h-auto hover:bg-transparent">
+              {t('home.view_all')}
+            </Button>
+          )}
         </div>
 
         <div className="space-y-4">
-          {filteredEvents.length > 0 ? (
+          {loading ? (
             <div className="grid grid-cols-1 gap-6">
-              {filteredEvents.map((event) => (
-                <EventCard 
-                  key={event.id} 
-                  event={event} 
-                  isFavorite={userFavorites.has(event.id)}
-                  onFavoriteToggle={(e) => toggleFavorite(e, event.id)}
-                />
+              {[1, 2, 3].map((i) => (
+                <EventCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredEvents.length > 0 ? (
+            <div className="grid grid-cols-1 gap-6">
+              {filteredEvents.map((event, idx) => (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                >
+                  <EventCard
+                    event={event}
+                    isFavorite={userFavorites.has(event.id)}
+                    onFavoriteToggle={(e) => toggleFavorite(e, event.id)}
+                  />
+                </motion.div>
               ))}
             </div>
           ) : (
