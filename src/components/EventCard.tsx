@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo } from 'react';
 import { EventData } from '@/types';
-import { Heart, MapPin } from 'lucide-react';
+import { Heart, MapPin, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
@@ -16,74 +16,22 @@ const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavorite
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const [followerAvatars, setFollowerAvatars] = useState<string[]>([]);
-  const [liveEvent, setLiveEvent] = useState(event);
-
-  const fetchFollowers = async () => {
-    const { data } = await supabase
-      .from('event_followers')
-      .select(`
-        profiles (
-          avatar_url
-        )
-      `)
-      .eq('event_id', event.id)
-      .limit(3);
-    
-    if (data) {
-      setFollowerAvatars(
-        data
-          .map((f: any) => f.profiles?.avatar_url as string | undefined)
-          .filter((a): a is string => typeof a === 'string' && a.length > 0)
-      );
-    }
-  };
-
-  useEffect(() => {
-    setLiveEvent(event);
-    if (event.id) {
-      fetchFollowers();
-
-      // Realtime for followers
-      const followersChannel = supabase
-        .channel(`card-followers-${event.id}`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'event_followers', filter: `event_id=eq.${event.id}` },
-          () => fetchFollowers()
-        )
-        .subscribe();
-
-      // Realtime for event data
-      const eventChannel = supabase
-        .channel(`card-event-${event.id}`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'events', filter: `id=eq.${event.id}` },
-          (payload) => {
-            setLiveEvent((prev: any) => ({ ...prev, ...payload.new }));
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(followersChannel);
-        supabase.removeChannel(eventChannel);
-      };
-    }
-  }, [event.id, event]);
-
-  const displayEvent = liveEvent;
 
   if (variant === 'small') {
     return (
       <button
-        onClick={() => navigate(`/event/${displayEvent.id}`)}
-        className="bg-card rounded-2xl p-3.5 border border-border text-left min-w-[150px] flex-shrink-0 transition-shadow hover:shadow-md"
+        onClick={() => navigate(`/event/${event.id}`)}
+        className="bg-card rounded-2xl p-3.5 border border-border text-left min-w-[150px] flex-shrink-0 transition-shadow hover:shadow-md will-change-transform"
       >
         <div className="h-16 w-full bg-secondary rounded-xl overflow-hidden mb-2">
           {event.image_url ? (
-            <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
+            <img
+              src={event.image_url}
+              alt={event.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-2xl">
               {event.emoji || '📅'}
@@ -106,12 +54,18 @@ const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavorite
 
   return (
     <button
-      onClick={() => navigate(`/event/${displayEvent.id}`)}
-      className="bg-card rounded-2xl overflow-hidden border border-border text-left w-full transition-shadow hover:shadow-md"
+      onClick={() => navigate(`/event/${event.id}`)}
+      className="bg-card rounded-2xl overflow-hidden border border-border text-left w-full transition-shadow hover:shadow-md will-change-transform"
     >
       <div className="h-40 bg-secondary flex items-center justify-center text-5xl relative overflow-hidden">
         {event.image_url ? (
-          <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
+          <img
+            src={event.image_url}
+            alt={event.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-foreground/80 to-foreground/40 text-white">
             {event.emoji || '📅'}
@@ -129,21 +83,23 @@ const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavorite
           )}
         </div>
         <div className="absolute top-3 right-3">
-          <button 
+          <div
             onClick={(e) => {
               e.stopPropagation();
               onFavoriteToggle?.(e);
             }}
-            className={`w-10 h-10 rounded-xl backdrop-blur-md flex items-center justify-center transition-all border ${
-              isFavProp 
-                ? 'bg-red-500 border-red-500 text-white' 
+            role="button"
+            tabIndex={0}
+            className={`w-10 h-10 rounded-xl backdrop-blur-md flex items-center justify-center transition-all border cursor-pointer ${
+              isFavProp
+                ? 'bg-red-500 border-red-500 text-white'
                 : 'bg-white/10 border-white/10 text-white hover:bg-white hover:text-red-500'
             }`}
           >
             <Heart
               className={`w-4 h-4 ${isFavProp ? 'fill-current' : ''}`}
             />
-          </button>
+          </div>
         </div>
       </div>
       <div className="p-4">
@@ -169,20 +125,8 @@ const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavorite
         </div>
         <div className="flex justify-between items-center mt-3">
           <div className="flex items-center gap-1">
-            <div className="flex -space-x-1.5">
-              {followerAvatars.length > 0 ? (
-                followerAvatars.map((avatar, i) => (
-                  <div key={i} className="w-6 h-6 rounded-full border-2 border-card overflow-hidden bg-muted">
-                    <img src={avatar} alt="follower" className="w-full h-full object-cover" />
-                  </div>
-                ))
-              ) : (
-                [1, 2, 3].map((i) => (
-                  <div key={i} className="w-6 h-6 rounded-full bg-muted border-2 border-card" />
-                ))
-              )}
-            </div>
-            <span className="text-xs text-muted-foreground ml-1.5">+{event.attendees || event.attendees_count || 0} {t('event_detail.attendees')}</span>
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">{event.attendees_count || event.attendees || 0} {t('event_detail.attendees')}</span>
           </div>
           <span className="text-xs font-semibold text-foreground bg-secondary px-3 py-1.5 rounded-lg">
             {t('common.view_more')}
@@ -193,4 +137,19 @@ const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavorite
   );
 };
 
-export default EventCard;
+// Memoize: skip re-renders if favorite state and key event fields haven't changed.
+export default memo(EventCard, (prev, next) => {
+  return (
+    prev.event.id === next.event.id &&
+    prev.event.title === next.event.title &&
+    prev.event.image_url === next.event.image_url &&
+    prev.event.attendees_count === next.event.attendees_count &&
+    prev.event.attendees === next.event.attendees &&
+    prev.event.distance_km === next.event.distance_km &&
+    prev.event.price === next.event.price &&
+    prev.event.event_date === next.event.event_date &&
+    prev.event.event_time === next.event.event_time &&
+    prev.isFavorite === next.isFavorite &&
+    prev.variant === next.variant
+  );
+});

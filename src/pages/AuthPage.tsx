@@ -49,24 +49,8 @@ const AuthPage = () => {
         toast.error(error.message);
       }
     } else {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('preferences')
-          .eq('id', user.id)
-          .single();
-
-        if (!profile?.preferences || profile.preferences.length === 0) {
-          toast.info(t('onboarding.complete_info'));
-          navigate('/onboarding', { replace: true });
-        } else {
-          toast.success(t('auth.login.welcome_back'));
-          navigate('/', { replace: true });
-        }
-      } else {
-        navigate('/', { replace: true });
-      }
+      toast.success(t('auth.login.welcome_back'));
+      navigate('/', { replace: true });
     }
     setLoading(false);
   };

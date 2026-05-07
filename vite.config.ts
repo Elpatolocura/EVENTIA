@@ -8,11 +8,7 @@ export default defineConfig(({ mode }) => ({
   base: '/', 
 
   server: {
-    host: true,
     port: 8080,
-    hmr: {
-      overlay: false,
-    },
   },
 
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
@@ -29,5 +25,53 @@ export default defineConfig(({ mode }) => ({
       "@tanstack/react-query",
       "@tanstack/query-core",
     ],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            // Large UI libraries in separate chunks
+            if (id.includes('@radix-ui') || id.includes('lucide-react')) {
+              return 'ui-vendor';
+            }
+            // React and core libraries
+            if (id.includes('react') || id.includes('@tanstack/react-query')) {
+              return 'react-vendor';
+            }
+            // Framer Motion (heavy animation library)
+            if (id.includes('framer-motion')) {
+              return 'animation-vendor';
+            }
+            // Supabase
+            if (id.includes('supabase')) {
+              return 'supabase-vendor';
+            }
+            // Other node_modules
+            return 'vendor';
+          }
+          // Application chunks
+          if (id.includes('src/pages/')) {
+            // Group related pages
+            if (id.includes('HomePage') || id.includes('ExplorePage') || id.includes('EventDetailPage')) {
+              return 'events-pages';
+            }
+            if (id.includes('AuthPage') || id.includes('ProfilePage') || id.includes('SettingsPage')) {
+              return 'auth-pages';
+            }
+            if (id.includes('ChatPage') || id.includes('ChatRoomPage')) {
+              return 'chat-pages';
+            }
+            return 'other-pages';
+          }
+          // Large components
+          if (id.includes('src/components/EventCard') || id.includes('src/components/BottomNav')) {
+            return 'core-components';
+          }
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500, // Lower threshold to catch issues earlier
   },
 }));

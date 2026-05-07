@@ -84,15 +84,8 @@ const EventDetailPage = () => {
           setFavoriteId(favData.id);
         }
 
-        // Check following
-        const { data: followData } = await supabase
-          .from('event_followers')
-          .select('id')
-          .eq('event_id', id)
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
-        setIsFollowing(!!followData);
+        // Following functionality disabled - table event_followers doesn't exist
+        setIsFollowing(false);
 
         // Check if user has ticket
         const { data: ticketData } = await supabase
@@ -135,16 +128,8 @@ const EventDetailPage = () => {
         setHasMembership(!!subscription);
       }
 
-      // Fetch some follower avatars
-      const { data: followersData } = await supabase
-        .from('event_followers')
-        .select('user_id, profiles!user_id(avatar_url)')
-        .eq('event_id', id)
-        .limit(5);
-      
-      if (followersData) {
-        setFollowers(followersData.map(f => (f as any).profiles?.avatar_url).filter(Boolean));
-      }
+      // Followers functionality disabled - table event_followers doesn't exist
+      setFollowers([]);
 
       // Fetch reviews
       const { data: reviewsData } = await supabase
@@ -229,29 +214,10 @@ const EventDetailPage = () => {
       )
       .subscribe();
 
-    // Realtime subscription for followers
-    const followersSubscription = supabase
-      .channel(`followers-updates-${id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'event_followers', filter: `event_id=eq.${id}` },
-        () => {
-          console.log('Followers changed, refreshing...');
-          fetchSecondaryData();
-        }
-      )
-      .subscribe();
-
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-
-    window.addEventListener('scroll', handleScroll);
+    // Followers realtime subscription disabled - table event_followers doesn't exist
 
     return () => {
       supabase.removeChannel(eventSubscription);
-      supabase.removeChannel(followersSubscription);
-      window.removeEventListener('scroll', handleScroll);
     };
   }, [id, navigate]);
 
@@ -295,70 +261,8 @@ const EventDetailPage = () => {
   };
 
   const toggleFollow = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error(t('event_detail.login_to_follow'));
-        return;
-      }
-
-      if (isFollowing) {
-        const { error } = await supabase
-          .from('event_followers')
-          .delete()
-          .eq('event_id', id)
-          .eq('user_id', user.id);
-
-        if (error) throw error;
-        setIsFollowing(false);
-        toast.success(t('event_detail.unfollow_success'));
-      } else {
-        const { error } = await supabase
-          .from('event_followers')
-          .insert({
-            user_id: user.id,
-            event_id: id
-          });
-
-        if (error) throw error;
-        setIsFollowing(true);
-        toast.success(t('event_detail.follow_success'));
-
-        // Also add to event chat room if exists
-        const { data: room } = await supabase
-          .from('chat_rooms')
-          .select('id')
-          .eq('event_id', id)
-          .eq('type', 'event')
-          .maybeSingle();
-
-        if (room) {
-          await supabase.from('chat_room_members').upsert({
-            room_id: room.id,
-            user_id: user.id
-          }, { onConflict: 'room_id,user_id' });
-        }
-      }
-
-      // Refresh avatars
-      const { data: followersData } = await supabase
-        .from('event_followers')
-        .select(`
-          user_id,
-          profiles (
-            avatar_url
-          )
-        `)
-        .eq('event_id', id)
-        .limit(5);
-
-      if (followersData) {
-        setFollowers(followersData.map(f => (f as any).profiles?.avatar_url).filter(Boolean));
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('Error al seguir el evento');
-    }
+    // Following functionality disabled - table event_followers doesn't exist
+    toast.info('Funcionalidad de seguir eventos próximamente disponible');
   };
 
   const handleJoinEventChat = async () => {
