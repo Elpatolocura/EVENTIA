@@ -3,11 +3,26 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { NotificationsService } from '@/lib/notifications';
+import { App as CapacitorApp } from '@capacitor/app';
 
 const NotificationManager = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Initialize Native Push Notifications
+    NotificationsService.initialize().catch(err => {
+      console.error('Failed to init push notifications:', err);
+    });
+
+    // Handle Deep Links (App opening from URL or notification)
+    CapacitorApp.addListener('appUrlOpen', (event: any) => {
+      const slug = event.url.split('://').pop();
+      if (slug) {
+        navigate(slug);
+      }
+    });
+
     let channel: any;
 
     const setupSubscription = async () => {
