@@ -575,7 +575,9 @@ const EventDetailPage = () => {
       if (Array.isArray(parsed)) {
         eventAmenities = parsed.map((key: string) => AMENITY_ICONS[key]).filter(Boolean);
       }
-    } catch (e) { }
+     } catch (e) {
+       console.error('Failed to parse amenities:', e);
+     }
   }
 
   return (

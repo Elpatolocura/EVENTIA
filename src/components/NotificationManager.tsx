@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NotificationsService } from '@/lib/notifications';
-import { App as CapacitorApp } from '@capacitor/app';
+import { App as CapacitorApp, AppUrlOpenEvent } from '@capacitor/app';
+import type { Channel } from '@supabase/supabase-js';
 
 const NotificationManager = () => {
   const navigate = useNavigate();
@@ -16,14 +17,14 @@ const NotificationManager = () => {
     });
 
     // Handle Deep Links (App opening from URL or notification)
-    CapacitorApp.addListener('appUrlOpen', (event: any) => {
+    CapacitorApp.addListener('appUrlOpen', (event: AppUrlOpenEvent) => {
       const slug = event.url.split('://').pop();
       if (slug) {
         navigate(slug);
       }
     });
 
-    let channel: any;
+    let channel: Channel | null = null;
 
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();

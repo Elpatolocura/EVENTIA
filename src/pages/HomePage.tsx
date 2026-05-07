@@ -14,7 +14,6 @@ import EventCard from '@/components/EventCard';
 import EventCardSkeleton from '@/components/EventCardSkeleton';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from '@/hooks/useLocation';
-// Removed framer-motion import for better performance
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -36,8 +35,6 @@ const HomePage = () => {
   }, [userName, t]);
 
   const { latitude, longitude, city, loading: locLoading, requestLocation, calculateDistance, permission, setManualLocation } = useLocation();
-
-
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -274,7 +271,7 @@ const HomePage = () => {
     return () => {
       supabase.removeChannel(eventsSubscription);
     };
-  }, [navigate]);
+  }, [navigate, t]);
 
   // Save states
   useEffect(() => {
@@ -552,30 +549,6 @@ const HomePage = () => {
         userLocation={latitude && longitude ? { latitude, longitude, city } : undefined}
       />
 
-<<<<<<< HEAD
-      <div className="px-6 pb-8">
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : filteredEvents.length > 0 ? (
-          <div className="space-y-4">
-            {filteredEvents.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                isFavorite={userFavorites.has(event.id)}
-                onFavoriteToggle={(e) => toggleFavorite(e, event.id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="py-20 text-center space-y-6 px-4 animate-in fade-in zoom-in-95 duration-500">
-            <div className="relative w-28 h-28 mx-auto">
-              <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400 via-blue-500 to-indigo-600 rounded-[32px] rotate-3 opacity-20 animate-pulse"></div>
-              <div className="absolute inset-0 bg-gradient-to-bl from-cyan-400 via-blue-500 to-indigo-600 rounded-[32px] -rotate-3 flex items-center justify-center shadow-xl shadow-blue-500/30">
-                <Search className="w-12 h-12 text-white" />
-=======
       {/* Entry Type Filter */}
       <div className="px-6 mb-8 flex gap-2 relative z-10">
         {[
@@ -585,12 +558,11 @@ const HomePage = () => {
         ].map((filter) => (
           <button
             key={filter.id}
-            onClick={() => setPriceFilter(filter.id as any)}
-            className={`px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all border ${
-              priceFilter === filter.id
+            onClick={() => setPriceFilter(filter.id as 'all' | 'free' | 'paid')}
+            className={`px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all border ${priceFilter === filter.id
                 ? 'bg-foreground text-background border-foreground shadow-lg shadow-foreground/10'
                 : 'bg-card text-muted-foreground border-border hover:border-border/80'
-            }`}
+              }`}
           >
             {filter.label}
           </button>
@@ -625,18 +597,17 @@ const HomePage = () => {
           ) : filteredEvents.length > 0 ? (
             <div className="grid grid-cols-1 gap-6">
               {filteredEvents.map((event, idx) => (
-                <motion.div
+                <div
                   key={event.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
+                  className="animate-fade-in-custom"
+                  style={{ animationDelay: `${idx * 0.1}s` }}
                 >
                   <EventCard
                     event={event}
                     isFavorite={userFavorites.has(event.id)}
                     onFavoriteToggle={(e) => toggleFavorite(e, event.id)}
                   />
-                </motion.div>
+                </div>
               ))}
             </div>
           ) : (
@@ -649,35 +620,31 @@ const HomePage = () => {
                 <div className="absolute -top-3 -right-3 bg-white text-blue-500 rounded-full p-2 shadow-lg animate-bounce">
                   <Sparkles className="w-5 h-5" />
                 </div>
->>>>>>> 148d0209998a7bac4548328194402bb312c14d2d
               </div>
-              <div className="absolute -top-3 -right-3 bg-white text-blue-500 rounded-full p-2 shadow-lg animate-bounce">
-                <Sparkles className="w-5 h-5" />
+              <div>
+                <h3 className="font-black text-2xl text-foreground tracking-tight mb-2">
+                  {t('home.no_results.title') || 'No se encontraron eventos'}
+                </h3>
+                <p className="text-muted-foreground text-[15px] font-medium leading-relaxed max-w-[280px] mx-auto">
+                  {activeFilter === 'featured' && 'No hay eventos destacados disponibles.'}
+                  {activeFilter === 'popular' && 'No hay eventos con asistentes registrados.'}
+                  {activeFilter === 'today' && 'No hay eventos programados para hoy.'}
+                  {activeFilter === 'tomorrow' && 'No hay eventos programados para mañana.'}
+                  {activeFilter === 'nearby' && 'No hay eventos con ubicación definida.'}
+                  {activeFilter === 'all' && 'No se encontraron eventos que coincidan con tu búsqueda.'}
+                </p>
               </div>
+              {activeFilter !== 'all' && (
+                <button
+                  onClick={() => handleFilterChange('all')}
+                  className="mt-4 px-8 py-4 bg-primary text-primary-foreground rounded-[20px] font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all hover:bg-primary/90 hover:shadow-primary/30"
+                >
+                  Ver todos los eventos
+                </button>
+              )}
             </div>
-            <div>
-              <h3 className="font-black text-2xl text-foreground tracking-tight mb-2">
-                {t('home.no_results.title') || 'No se encontraron eventos'}
-              </h3>
-              <p className="text-muted-foreground text-[15px] font-medium leading-relaxed max-w-[280px] mx-auto">
-                {activeFilter === 'featured' && 'No hay eventos destacados disponibles.'}
-                {activeFilter === 'popular' && 'No hay eventos con asistentes registrados.'}
-                {activeFilter === 'today' && 'No hay eventos programados para hoy.'}
-                {activeFilter === 'tomorrow' && 'No hay eventos programados para mañana.'}
-                {activeFilter === 'nearby' && 'No hay eventos con ubicación definida.'}
-                {activeFilter === 'all' && 'No se encontraron eventos que coincidan con tu búsqueda.'}
-              </p>
-            </div>
-            {activeFilter !== 'all' && (
-              <button
-                onClick={() => handleFilterChange('all')}
-                className="mt-4 px-8 py-4 bg-primary text-primary-foreground rounded-[20px] font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all hover:bg-primary/90 hover:shadow-primary/30"
-              >
-                Ver todos los eventos
-              </button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
