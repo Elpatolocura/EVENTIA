@@ -34,6 +34,7 @@ import SubscriptionCheckoutPage from "@/pages/SubscriptionCheckoutPage";
 import LegalPage from "@/pages/LegalPage";
 import FollowsPage from "@/pages/FollowsPage";
 import NotFound from "./pages/NotFound.tsx";
+import BackButtonHandler from "@/components/BackButtonHandler";
 
 const queryClient = new QueryClient();
 

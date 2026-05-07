@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-
 export const ACCENT_COLORS = {
   indigo: '230 70% 50%',
   rose: '346 84% 61%',
@@ -8,26 +6,105 @@ export const ACCENT_COLORS = {
   violet: '262 83% 58%',
 };
 
-export const applyTheme = (color: string, style: string) => {
-  const root = document.documentElement;
-  
-  // Apply Accent Color
-  if (color && ACCENT_COLORS[color as keyof typeof ACCENT_COLORS]) {
-    root.style.setProperty('--primary', ACCENT_COLORS[color as keyof typeof ACCENT_COLORS]);
-    // Also update ring color if needed
-    root.style.setProperty('--ring', ACCENT_COLORS[color as keyof typeof ACCENT_COLORS]);
-  }
+export type AccentColor = keyof typeof ACCENT_COLORS;
 
-  // Apply Interface Style
+export type InterfaceStyle = 'Moderno' | 'Minimalista';
+
+/**
+ * Obtiene valores guardados del tema
+ */
+export const getSavedThemeConfig = () => {
+  return {
+    color:
+      (localStorage.getItem('app-accent-color') as AccentColor) || 'indigo',
+
+    style:
+      (localStorage.getItem(
+        'app-interface-style'
+      ) as InterfaceStyle) || 'Moderno',
+
+    theme: localStorage.getItem('app-theme') || 'light',
+  };
+};
+
+/**
+ * Aplica colores, estilos y tema visual
+ */
+export const applyTheme = (
+  color: AccentColor = 'indigo',
+  style: InterfaceStyle = 'Moderno'
+) => {
+  const root = document.documentElement;
+
+  // =========================
+  // APPLY ACCENT COLOR
+  // =========================
+  const selectedColor =
+    ACCENT_COLORS[color] || ACCENT_COLORS.indigo;
+
+  root.style.setProperty('--primary', selectedColor);
+  root.style.setProperty('--ring', selectedColor);
+
+  // Extra variables opcionales
+  root.style.setProperty('--accent', selectedColor);
+
+  // =========================
+  // APPLY INTERFACE STYLE
+  // =========================
+  root.classList.remove(
+    'style-modern',
+    'style-minimalist'
+  );
+
   if (style === 'Minimalista') {
     root.classList.add('style-minimalist');
-    root.classList.remove('style-modern');
   } else {
     root.classList.add('style-modern');
-    root.classList.remove('style-minimalist');
   }
 
-  // Save to localStorage
+  // =========================
+  // SAVE SETTINGS
+  // =========================
   localStorage.setItem('app-accent-color', color);
   localStorage.setItem('app-interface-style', style);
+
+  // =========================
+  // DISPATCH CUSTOM EVENT
+  // =========================
+  window.dispatchEvent(new Event('theme-change'));
+};
+
+/**
+ * Aplica dark mode / light mode
+ */
+export const applyColorMode = (
+  theme: 'light' | 'dark'
+) => {
+  const root = document.documentElement;
+
+  root.classList.remove('light', 'dark');
+
+  if (theme === 'dark') {
+    root.classList.add('dark');
+  } else {
+    root.classList.add('light');
+  }
+
+  root.setAttribute('data-theme', theme);
+
+  localStorage.setItem('app-theme', theme);
+
+  window.dispatchEvent(new Event('theme-change'));
+};
+
+/**
+ * Toggle automático del tema
+ */
+export const toggleTheme = () => {
+  const current =
+    localStorage.getItem('app-theme') || 'light';
+
+  applyColorMode(
+    current === 'dark' ? 'light' : 'dark'
+  );
 };
