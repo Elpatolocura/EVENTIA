@@ -7,7 +7,8 @@ import {
   Star, MessageCircle, X, ShieldCheck, Instagram,
   Image as ImageIcon, Camera, FileText, Download, Share2,
   ChevronLeft, ChevronRight, Search, BellOff,
-  Reply, Copy, Forward, ShieldAlert, Trash2, MoreHorizontal
+  Reply, Copy, Forward, ShieldAlert, Trash2, MoreHorizontal,
+  Sparkles, MessageSquareHeart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,52 +44,33 @@ import { useTranslation } from 'react-i18next';
 
 const MessageBubble = ({ 
   msg, 
+  appearance,
   openUserProfile, 
   openImageViewer, 
   onDelete, 
-  onReply,
-  onScrollToMessage,
-  onProfileLongPress
-}: { 
-  msg: any, 
-  openUserProfile: (user: any) => void, 
-  openImageViewer: (images: string[], index: number) => void, 
-  onDelete: (id: number) => void, 
-  onReply: (msg: any) => void,
-  onScrollToMessage: (id: number) => void,
-  onProfileLongPress: (userId: string) => void
-}) => {
+  onReply, 
+  onScrollToMessage, 
+  onProfileLongPress 
+}: any) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const CHAR_LIMIT = 200;
+  const images = msg.images || [];
+  const isLongMessage = msg.text && msg.text.length > 280;
+  const displayText = isExpanded ? msg.text : (msg.text?.slice(0, 280) + (isLongMessage ? '...' : ''));
 
+  // Long press handler for profile
+  const timerRef = useRef<any>(null);
   const handleStart = () => {
-    longPressTimer.current = setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       onProfileLongPress(msg.sender_id);
-      // Optional: haptic feedback if available
-      if (window.navigator && window.navigator.vibrate) {
-        window.navigator.vibrate(50);
-      }
-    }, 800);
+    }, 500);
   };
-
   const handleEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-    }
+    if (timerRef.current) clearTimeout(timerRef.current);
   };
-  
-  const isLongMessage = (msg.text?.length || 0) > CHAR_LIMIT;
-  const displayText = isLongMessage && !isExpanded ? msg.text.slice(0, CHAR_LIMIT) + '...' : msg.text;
-
-  const images = msg.images || (msg.image ? [msg.image] : []);
 
   return (
-    <div 
-      id={`message-${msg.id}`}
-      className={`flex w-full items-end gap-3.5 transition-all duration-500 ${msg.isMe ? 'flex-row-reverse' : ''}`}
-    >
+    <div className={`flex items-end gap-3 mb-4 ${msg.isMe ? 'flex-row-reverse' : ''} group animate-in slide-in-from-bottom-2 duration-300`}>
       {!msg.isMe && (
         <div 
           onMouseDown={handleStart}
@@ -96,7 +78,7 @@ const MessageBubble = ({
           onMouseLeave={handleEnd}
           onTouchStart={handleStart}
           onTouchEnd={handleEnd}
-          onClick={() => openUserProfile(msg)}
+          onClick={() => openUserProfile(msg.sender_id)}
           className="w-11 h-11 rounded-[20px] overflow-hidden shadow-lg border-2 border-white shrink-0 mb-1 active:scale-95 active:opacity-80 transition-all cursor-pointer"
         >
           <img src={msg.avatar} alt={msg.user} className="w-full h-full object-cover select-none pointer-events-none" />
@@ -113,11 +95,17 @@ const MessageBubble = ({
         
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            <div className={`rounded-[24px] text-[13px] font-medium leading-relaxed shadow-sm break-words overflow-hidden relative z-10 select-none cursor-pointer min-w-0 max-w-full ${
-              msg.isMe 
-              ? 'bg-primary text-white rounded-br-sm shadow-primary/10' 
-              : 'bg-card text-foreground rounded-bl-sm border border-border/50'
-            }`}>
+            <div 
+              className={`rounded-[24px] text-[13px] font-medium leading-relaxed shadow-sm break-words overflow-hidden relative z-10 select-none cursor-pointer min-w-0 max-w-full transition-colors duration-500 ${
+                msg.isMe 
+                ? 'rounded-br-sm shadow-primary/10' 
+                : 'rounded-bl-sm border border-border/50'
+              }`}
+              style={{ 
+                backgroundColor: msg.isMe ? appearance.myBubbleColor : appearance.otherBubbleColor,
+                color: msg.isMe ? appearance.textColor : appearance.otherTextColor
+              }}
+            >
 
           {msg.replyTo && (
             <div 
@@ -125,15 +113,17 @@ const MessageBubble = ({
                 e.stopPropagation();
                 onScrollToMessage(msg.replyTo.id);
               }}
-              className={`p-2.5 m-2 mb-0 rounded-xl text-[11px] border-l-[3px] overflow-hidden flex flex-col min-w-0 cursor-pointer hover:opacity-80 transition-opacity ${
-                msg.isMe 
-                  ? 'bg-white/10 border-white/30 text-white/90' 
-                  : 'bg-secondary border-primary/40 text-foreground/70'
-              }`}
+              className={`p-2.5 m-2 mb-0 rounded-xl text-[11px] border-l-[3px] overflow-hidden flex flex-col min-w-0 cursor-pointer hover:opacity-80 transition-opacity`}
+              style={{ 
+                backgroundColor: 'rgba(0,0,0,0.05)',
+                borderLeftColor: msg.isMe ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.2)',
+                color: 'inherit',
+                opacity: 0.8
+              }}
             >
               <div className="flex items-center gap-1.5 mb-1">
                 <div className={`w-1 h-1 rounded-full ${msg.isMe ? 'bg-white/50' : 'bg-primary'}`}></div>
-                <span className={`font-black uppercase tracking-widest text-[9px] ${msg.isMe ? 'text-white/60' : 'text-primary'}`}>
+                <span className={`font-black uppercase tracking-widest text-[9px] opacity-70`}>
                   {msg.replyTo.user || (msg.replyTo.isMe ? t('chat_room.you') : 'Usuario')}
                 </span>
               </div>
@@ -181,18 +171,16 @@ const MessageBubble = ({
               </div>
               
               <div className="flex items-center justify-end gap-1.5 mt-1 -mr-1">
-                <span className={`text-[9px] font-black uppercase tracking-widest ${msg.isMe ? 'text-white/60' : 'text-muted-foreground'}`}>
+                <span className={`text-[9px] font-black uppercase tracking-widest opacity-60`}>
                   {msg.time}
                 </span>
-                {msg.isMe && <span className="text-white text-[10px] font-black">✓✓</span>}
+                {msg.isMe && <span className="text-[10px] font-black opacity-80">✓✓</span>}
               </div>
 
               {isLongMessage && (
                 <button 
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className={`mt-2 block text-[10px] font-black uppercase tracking-widest transition-colors text-left ${
-                    msg.isMe ? 'text-white/50 hover:text-white' : 'text-primary hover:text-primary/80'
-                  }`}
+                  className={`mt-2 block text-[10px] font-black uppercase tracking-widest transition-colors text-left opacity-70 hover:opacity-100`}
                 >
                   {isExpanded ? t('chat_room.view_less') : t('chat_room.view_more')}
                 </button>
@@ -206,7 +194,7 @@ const MessageBubble = ({
               onClick={() => onReply(msg)}
               className="px-4 py-2.5 rounded-xl hover:bg-secondary focus:bg-secondary cursor-pointer text-[13px] font-bold text-foreground flex items-center gap-3"
             >
-              <Trash2 className="w-4 h-4 text-slate-400" /> {t('chat_room.reply')}
+              <Reply className="w-4 h-4 text-slate-400" /> {t('chat_room.reply')}
             </ContextMenuItem>
             <ContextMenuItem 
               onClick={() => {
@@ -247,8 +235,6 @@ const MessageBubble = ({
             )}
           </ContextMenuContent>
         </ContextMenu>
-
-
       </div>
     </div>
   );
@@ -266,10 +252,53 @@ const ChatRoomPage = () => {
   const [viewerData, setViewerData] = useState<{ images: string[], index: number } | null>(null);
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<any>(null);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+
+  // Click outside listener for emoji picker
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isEmojiPickerOpen && 
+        emojiPickerRef.current && 
+        !emojiPickerRef.current.contains(event.target as Node) &&
+        emojiTriggerRef.current &&
+        !emojiTriggerRef.current.contains(event.target as Node)
+      ) {
+        setIsEmojiPickerOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isEmojiPickerOpen]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const emojiTriggerRef = useRef<HTMLButtonElement>(null);
   const currentUserIdRef = useRef<string | null>(null);
+
+  const [appearance, setAppearance] = useState({
+    myBubbleColor: '#00c853',
+    otherBubbleColor: '#f1f5f9',
+    textColor: '#ffffff',
+    otherTextColor: '#0f172a',
+    backgroundColor: '#ffffff'
+  });
+
+  useEffect(() => {
+    if (id) {
+      const loadAppearance = () => {
+        const saved = localStorage.getItem(`chat_appearance_${id}`);
+        if (saved) {
+          setAppearance(JSON.parse(saved));
+        }
+      };
+      loadAppearance();
+      window.addEventListener('chatAppearanceUpdate', loadAppearance);
+      return () => window.removeEventListener('chatAppearanceUpdate', loadAppearance);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (selectedUser) {
@@ -427,14 +456,21 @@ const ChatRoomPage = () => {
         }
 
         // Fetch initial messages
-        const { data: messages, error: msgsError } = await supabase
+        const clearTimestamp = localStorage.getItem(`chat_clear_timestamp_${id}`);
+        
+        let query = supabase
           .from('chat_messages')
           .select(`
             *,
             sender:sender_id (full_name, avatar_url, role)
           `)
-          .eq('room_id', id)
-          .order('created_at', { ascending: true });
+          .eq('room_id', id);
+
+        if (clearTimestamp) {
+          query = query.gt('created_at', clearTimestamp);
+        }
+
+        const { data: messages, error: msgsError } = await query.order('created_at', { ascending: true });
 
         if (msgsError) throw msgsError;
 
@@ -715,42 +751,19 @@ const ChatRoomPage = () => {
             </div>
           </div>
         </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <button className="p-2.5 rounded-2xl hover:bg-secondary transition-all active:scale-95">
-              <MoreVertical className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-56 p-2 rounded-[20px] border-border bg-card shadow-xl" align="end">
-            <div className="flex flex-col">
-              <button 
-                onClick={() => toast.success('Función de búsqueda próximamente')}
-                className="w-full text-left px-4 py-3 rounded-xl hover:bg-secondary transition-colors text-[13px] font-bold text-foreground flex items-center gap-3"
-              >
-                <Search className="w-4 h-4 text-muted-foreground" /> Buscar en el chat
-              </button>
-              <button 
-                onClick={() => toast.success('Notificaciones silenciadas por 8 horas')}
-                className="w-full text-left px-4 py-3 rounded-xl hover:bg-secondary transition-colors text-[13px] font-bold text-foreground flex items-center gap-3"
-              >
-                <BellOff className="w-4 h-4 text-muted-foreground" /> Silenciar chat
-              </button>
-              <div className="h-px w-full bg-border my-1"></div>
-              <button 
-                onClick={() => toast.error('Chat reportado al equipo de soporte')}
-                className="w-full text-left px-4 py-3 rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors text-[13px] font-bold text-rose-500 flex items-center gap-3"
-              >
-                <ShieldCheck className="w-4 h-4" /> Reportar evento
-              </button>
-            </div>
-          </PopoverContent>
-        </Popover>
+        <button 
+          onClick={() => navigate(`/chat-settings/${id}`)}
+          className="p-2.5 rounded-2xl hover:bg-secondary transition-all active:scale-95"
+        >
+          <MoreVertical className="w-5 h-5 text-muted-foreground" />
+        </button>
       </header>
 
       {/* Messages Area */}
       <div 
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-6 space-y-10 no-scrollbar scroll-smooth relative"
+        ref={scrollRef} 
+        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 relative transition-colors duration-500"
+        style={{ backgroundColor: appearance.backgroundColor }}
       >
         {/* Subtle Chat Pattern to make transparency noticeable */}
         <div 
@@ -802,6 +815,7 @@ const ChatRoomPage = () => {
           <MessageBubble 
             key={msg.id} 
             msg={msg} 
+            appearance={appearance}
             openUserProfile={openUserProfile} 
             openImageViewer={(imgs, idx) => setViewerData({ images: imgs, index: idx })} 
             onDelete={handleDeleteMessage}
@@ -810,6 +824,45 @@ const ChatRoomPage = () => {
             onProfileLongPress={(userId) => navigate(`/profile/u/${userId}`)}
           />
         ))}
+
+        {chatMessages.length === 0 && !loading && (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-700 relative z-10 my-auto">
+            <div className="w-24 h-24 rounded-[40px] bg-gradient-to-br from-primary/20 via-primary/5 to-transparent flex items-center justify-center mb-8 relative group">
+              <div className="absolute inset-0 bg-primary/10 rounded-[40px] blur-2xl group-hover:bg-primary/20 transition-all duration-500" />
+              <div className="relative animate-bounce-slow">
+                <Sparkles className="w-12 h-12 text-primary" />
+              </div>
+              <div className="absolute -top-1 -right-1">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse delay-75" />
+                </div>
+              </div>
+            </div>
+            <h3 className="text-xl font-black text-foreground tracking-tight mb-3">
+              No hay mensajes aún
+            </h3>
+            <p className="text-muted-foreground text-[14px] font-medium leading-relaxed max-w-[240px]">
+              Sé el primero en enviar uno. <br/>
+              <span className="text-primary font-bold">¡Rompe el hielo!</span> 🧊🔥
+            </p>
+            
+            <div className="mt-10 grid grid-cols-2 gap-3 w-full max-w-xs">
+               <button 
+                onClick={() => setMessage('¡Hola a todos! 👋')}
+                className="p-3 rounded-2xl bg-secondary/50 border border-border text-[11px] font-bold text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+               >
+                 ¡Hola a todos! 👋
+               </button>
+               <button 
+                onClick={() => setMessage('¿Qué tal el evento? ✨')}
+                className="p-3 rounded-2xl bg-secondary/50 border border-border text-[11px] font-bold text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+               >
+                 ¿Qué tal el evento? ✨
+               </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Chat Input */}
@@ -921,32 +974,68 @@ const ChatRoomPage = () => {
               className="w-full rounded-[22px] border-slate-100 bg-slate-50/50 focus-visible:ring-primary/20 text-[14px] font-medium pr-12 py-[18px] pl-5 shadow-none transition-all resize-none outline-none overflow-y-auto no-scrollbar"
             />
             
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" className="absolute right-4 bottom-[18px] text-slate-300 hover:text-amber-500 transition-all">
-                  <Smile className="w-5 h-5" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-3 rounded-3xl mb-2 border-slate-100 shadow-xl" side="top" align="end">
-                <div className="grid grid-cols-5 gap-2">
+            {/* Emoji Picker Button */}
+            <button 
+              ref={emojiTriggerRef}
+              type="button" 
+              onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
+              className={`absolute right-4 bottom-[18px] transition-all z-20 ${isEmojiPickerOpen ? 'text-amber-500 scale-110' : 'text-slate-300 hover:text-amber-500'}`}
+            >
+              <Smile className="w-5 h-5" />
+            </button>
+
+            {/* Custom Emoji Picker Panel */}
+            {isEmojiPickerOpen && (
+              <div 
+                ref={emojiPickerRef}
+                className="absolute right-0 bottom-full mb-3 w-64 p-0 rounded-3xl border border-slate-100 bg-white shadow-2xl overflow-hidden animate-in slide-in-from-bottom-2 z-[100]"
+              >
+                <div className="bg-slate-50/50 px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Emojis</span>
+                  <button 
+                    onClick={() => setIsEmojiPickerOpen(false)}
+                    className="p-1 hover:bg-slate-200 rounded-lg transition-colors group"
+                  >
+                    <X className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-5 gap-2 p-3 max-h-[220px] overflow-y-auto no-scrollbar">
                   {EMOJIS.map(emoji => (
                     <button
                       key={emoji}
                       type="button"
-                      onClick={() => {
-                        setMessage(prev => prev + emoji);
-                        if (textareaRef.current) {
-                          textareaRef.current.focus();
-                        }
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const start = textareaRef.current?.selectionStart ?? message.length;
+                        const end = textareaRef.current?.selectionEnd ?? message.length;
+                        const newMessage = message.substring(0, start) + emoji + message.substring(end);
+                        setMessage(newMessage);
+                        
+                        setTimeout(() => {
+                          if (textareaRef.current) {
+                            textareaRef.current.focus();
+                            const newPos = start + emoji.length;
+                            textareaRef.current.setSelectionRange(newPos, newPos);
+                          }
+                        }, 0);
                       }}
-                      className="text-2xl hover:bg-slate-100 p-2 rounded-xl transition-all flex items-center justify-center active:scale-95"
+                      className="text-2xl hover:bg-slate-100 p-2 rounded-xl transition-all flex items-center justify-center active:scale-125"
                     >
                       {emoji}
                     </button>
                   ))}
                 </div>
-              </PopoverContent>
-            </Popover>
+                <div className="p-2 bg-slate-50/50 border-t border-slate-100">
+                  <button 
+                    onClick={() => setIsEmojiPickerOpen(false)}
+                    className="w-full py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-colors"
+                  >
+                    Listo
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex h-[56px] items-center shrink-0">

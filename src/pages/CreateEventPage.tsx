@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Camera, Image as ImageIcon, Wifi, Car, Coffee, Music, Snowflake, Tv, Accessibility, Wine, Rocket, Lock, Loader2 } from 'lucide-react';
+import { ArrowLeft, Camera, Image as ImageIcon, Wifi, Car, Coffee, Music, Snowflake, Tv, Accessibility, Wine, Rocket, Lock, Loader2, Sparkles, MapPin, Wand2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSmartBack } from '@/hooks/useSmartBack';
 import { allCategories, categoryEmojis } from '@/data/mockData';
@@ -24,19 +24,55 @@ const CreateEventPage = () => {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    category: '',
+    categories: [] as string[],
     date: '',
     time: '',
     location: '',
     price: '',
+    currency: 'USD',
     maxAttendees: '',
     image: '',
     extraImages: [] as string[],
     amenities: [] as string[],
   });
 
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [createdEventId, setCreatedEventId] = useState<string | null>(null);
+
   const [isAllAccess, setIsAllAccess] = useState<boolean | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isAiLoading, setIsAiLoading] = useState<{title?: boolean, description?: boolean}>({});
+
+  const improveWithAI = async (field: 'title' | 'description') => {
+    if (!form[field]) {
+      toast.error(`Escribe algo primero para poder mejorar el ${field === 'title' ? 'título' : 'la descripción'}`);
+      return;
+    }
+
+    setIsAiLoading(prev => ({ ...prev, [field]: true }));
+    
+    // Simulating AI delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    const improvements = {
+      title: [
+        `✨ ${form.title}: Experiencia Inolvidable`,
+        `🚀 ${form.title} - ¡Edición Especial!`,
+        `💎 Descubre ${form.title}`,
+        `${form.title}: El evento del año`
+      ],
+      description: [
+        `${form.description}. Una oportunidad única para conectar, aprender y disfrutar en un ambiente inmejorable. ¡No te quedes fuera!`,
+        `Prepárate para vivir algo diferente con ${form.title}. ${form.description}. Asegura tu entrada antes de que se agoten.`,
+        `¿Buscas el plan perfecto? ${form.description}. Te esperamos con sorpresas y la mejor energía de la ciudad.`
+      ]
+    };
+
+    const randomImp = improvements[field][Math.floor(Math.random() * improvements[field].length)];
+    update(field, randomImp);
+    setIsAiLoading(prev => ({ ...prev, [field]: false }));
+    toast.success(`${field === 'title' ? 'Título' : 'Descripción'} mejorado con IA`);
+  };
 
   useEffect(() => {
     const checkSubscription = async () => {
@@ -81,6 +117,15 @@ const CreateEventPage = () => {
     }));
   };
 
+  const toggleCategory = (cat: string) => {
+    setForm(prev => ({
+      ...prev,
+      categories: prev.categories.includes(cat)
+        ? prev.categories.filter(c => c !== cat)
+        : [...prev.categories, cat]
+    }));
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -112,8 +157,8 @@ const CreateEventPage = () => {
 
   const handleSubmit = async () => {
     // Basic validation
-    if (!form.title || !form.category || !form.date || !form.location) {
-      toast.error('Por favor completa los campos obligatorios (Título, Categoría, Fecha y Ubicación)');
+    if (!form.title || form.categories.length === 0 || !form.date || !form.location) {
+      toast.error('Por favor completa los campos obligatorios (Título, Categorías, Fecha y Ubicación)');
       return;
     }
 
@@ -135,11 +180,13 @@ const CreateEventPage = () => {
         .insert({
           title: form.title,
           description: form.description,
-          category: form.category,
+          category: form.categories[0], // Main category for legacy compatibility
+          tags: form.categories, // Multiple categories stored in tags (jsonb)
           location: form.location,
           event_date: form.date,
           event_time: form.time || '12:00:00',
           price: parseFloat(form.price) || 0,
+          currency: form.currency,
           is_paid: parseFloat(form.price) > 0,
           max_attendees: parseInt(form.maxAttendees) || 100,
           image_url: form.image,
@@ -147,7 +194,7 @@ const CreateEventPage = () => {
           organizer_name: profile?.full_name || 'Organizador',
           organizer_avatar: profile?.avatar_url || 'https://i.pravatar.cc/150',
           amenities: form.amenities,
-          emoji: categoryEmojis[form.category] || '🎫',
+          emoji: categoryEmojis[form.categories[0]] || '🎫',
           status: 'active'
         })
         .select()
@@ -190,7 +237,8 @@ const CreateEventPage = () => {
       }
 
       toast.success('¡Evento creado con éxito!');
-      navigate('/');
+      setCreatedEventId(event.id);
+      setIsSuccess(true);
     } catch (error) {
       console.error("Error creating event:", error);
       toast.error('No se pudo crear el evento. Intenta de nuevo.');
@@ -249,6 +297,44 @@ const CreateEventPage = () => {
   }
 
   if (isAllAccess === null) return null;
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 animate-fade-in text-center space-y-8">
+        <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center animate-bounce shadow-[0_0_40px_rgba(16,185,129,0.3)]">
+          <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white">
+            <Rocket className="w-8 h-8" />
+          </div>
+        </div>
+        
+        <div className="space-y-3">
+          <h1 className="text-3xl font-black text-foreground tracking-tight">¡Felicidades!</h1>
+          <p className="text-muted-foreground font-medium text-lg leading-tight px-4">
+            Tu evento <span className="text-primary font-bold">"{form.title}"</span> ha sido creado con éxito.
+          </p>
+          <p className="text-sm text-muted-foreground/80 max-w-xs mx-auto">
+            Ya puedes empezar a compartirlo con la comunidad y gestionar los asistentes desde tu perfil.
+          </p>
+        </div>
+
+        <div className="w-full max-w-xs pt-8 space-y-4">
+          <Button 
+            onClick={() => navigate(`/event/${createdEventId}`, { replace: true })} 
+            className="w-full h-14 rounded-2xl font-black text-white bg-foreground shadow-xl hover:opacity-90 uppercase tracking-widest text-xs"
+          >
+            Ver mi evento
+          </Button>
+          <Button 
+            variant="ghost"
+            onClick={() => window.location.href = '/'} 
+            className="w-full h-14 rounded-2xl font-bold text-muted-foreground hover:text-foreground uppercase tracking-widest text-xs"
+          >
+            Finalizar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-24 px-5 pt-safe">
@@ -327,43 +413,66 @@ const CreateEventPage = () => {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-foreground block mb-1.5">Título</label>
+          <div className="flex justify-between items-center mb-1.5">
+            <label className="text-sm font-medium text-foreground">Título</label>
+            <button 
+              onClick={() => improveWithAI('title')}
+              disabled={isAiLoading.title}
+              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-2.5 py-1 rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50"
+            >
+              {isAiLoading.title ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              IA Mejorar
+            </button>
+          </div>
           <input
             type="text"
-            placeholder="Nombre del evento"
+            placeholder="Ej: Festival de Jazz en la Terraza"
             value={form.title}
             onChange={(e) => update('title', e.target.value)}
-            className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-foreground/20"
+            className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-foreground block mb-1.5">Descripción</label>
+          <div className="flex justify-between items-center mb-1.5">
+            <label className="text-sm font-medium text-foreground">Descripción</label>
+            <button 
+              onClick={() => improveWithAI('description')}
+              disabled={isAiLoading.description}
+              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-2.5 py-1 rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50"
+            >
+              {isAiLoading.description ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              IA Expandir
+            </button>
+          </div>
           <textarea
-            placeholder="Describe tu evento..."
-            rows={3}
+            placeholder="Cuéntanos más sobre qué esperar del evento..."
+            rows={4}
             value={form.description}
             onChange={(e) => update('description', e.target.value)}
-            className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-foreground/20 resize-none"
+            className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-foreground/20 resize-none transition-all"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-foreground block mb-1.5">Categoría</label>
+          <label className="text-sm font-medium text-foreground block mb-1.5">Categorías (Selecciona varias)</label>
           <div className="flex flex-wrap gap-2">
-            {allCategories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => update('category', cat)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium capitalize transition-colors ${
-                  form.category === cat
-                    ? 'bg-foreground text-primary-foreground shadow-md'
-                    : 'bg-card border border-border text-foreground hover:bg-secondary'
-                }`}
-              >
-                {categoryEmojis[cat]} {cat}
-              </button>
-            ))}
+            {allCategories.map((cat) => {
+              const isSelected = form.categories.includes(cat);
+              return (
+                <button
+                  key={cat}
+                  onClick={() => toggleCategory(cat)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium capitalize transition-all active:scale-95 ${
+                    isSelected
+                      ? 'bg-foreground text-background shadow-md'
+                      : 'bg-card border border-border text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  {categoryEmojis[cat]} {cat}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -389,14 +498,32 @@ const CreateEventPage = () => {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-foreground block mb-1.5">Ubicación</label>
-          <input
-            type="text"
-            placeholder="Dirección o lugar"
-            value={form.location}
-            onChange={(e) => update('location', e.target.value)}
-            className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-foreground/20"
-          />
+          <div className="flex justify-between items-center mb-1.5">
+            <label className="text-sm font-medium text-foreground">Ubicación</label>
+            <button 
+              onClick={() => {
+                // Simulated location fetch
+                update('location', 'Parque de la 93, Bogotá, Colombia');
+                toast.success('Ubicación actual detectada');
+              }}
+              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors"
+            >
+              <MapPin className="w-3 h-3" />
+              Usar mi ubicación
+            </button>
+          </div>
+          <div className="relative group">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-secondary flex items-center justify-center transition-colors group-focus-within:bg-primary/10">
+              <MapPin className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            </div>
+            <input
+              type="text"
+              placeholder="Busca una dirección o lugar..."
+              value={form.location}
+              onChange={(e) => update('location', e.target.value)}
+              className="w-full bg-card border border-border rounded-xl pl-14 pr-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all shadow-sm"
+            />
+          </div>
         </div>
 
         {/* Servicios Incluidos (Amenities) */}
@@ -426,14 +553,36 @@ const CreateEventPage = () => {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-sm font-medium text-foreground block mb-1.5">Precio (USD)</label>
-            <input
-              type="number"
-              placeholder="0"
-              value={form.price}
-              onChange={(e) => update('price', e.target.value)}
-              className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-foreground/20"
-            />
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="text-sm font-medium text-foreground">Precio</label>
+              <div className="flex bg-secondary p-0.5 rounded-lg border border-border">
+                {['USD', 'COP'].map((curr) => (
+                  <button
+                    key={curr}
+                    onClick={() => update('currency', curr)}
+                    className={`px-2 py-0.5 rounded-md text-[9px] font-black transition-all ${
+                      form.currency === curr 
+                        ? 'bg-background text-foreground shadow-sm' 
+                        : 'text-muted-foreground'
+                    }`}
+                  >
+                    {curr}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-xs">
+                {form.currency === 'USD' ? '$' : 'COL$'}
+              </div>
+              <input
+                type="number"
+                placeholder="0"
+                value={form.price}
+                onChange={(e) => update('price', e.target.value)}
+                className="w-full bg-card border border-border rounded-xl pl-12 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-foreground/20"
+              />
+            </div>
           </div>
           <div>
             <label className="text-sm font-medium text-foreground block mb-1.5">Aforo máximo</label>
@@ -450,7 +599,7 @@ const CreateEventPage = () => {
         <button 
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="w-full bg-foreground text-primary-foreground py-4 rounded-2xl font-semibold text-base mt-4 shadow-lg shadow-foreground/10 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full bg-foreground text-primary-foreground py-4 rounded-2xl font-semibold text-base mt-4 mb-8 shadow-lg shadow-foreground/10 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
             <>

@@ -69,9 +69,9 @@ export const applyTheme = (
   localStorage.setItem('app-interface-style', style);
 
   // =========================
-  // DISPATCH CUSTOM EVENT
+  // DISPATCH CUSTOM EVENT - COMENTADO PARA EVITAR BUCLE INFINITO
   // =========================
-  window.dispatchEvent(new Event('theme-change'));
+  // window.dispatchEvent(new Event('theme-change'));
 };
 
 /**
@@ -94,7 +94,10 @@ export const applyColorMode = (
 
   localStorage.setItem('app-theme', theme);
 
-  window.dispatchEvent(new Event('theme-change'));
+  // =========================
+  // DISPATCH CUSTOM EVENT - COMENTADO PARA EVITAR BUCLE INFINITO
+  // =========================
+  // window.dispatchEvent(new Event('theme-change'));
 };
 
 /**

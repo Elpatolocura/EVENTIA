@@ -12,8 +12,34 @@ const SubscriptionCheckoutPage = () => {
   const navigate = useNavigate();
   const goBack = useSmartBack('/premium');
   const { t } = useTranslation();
+  const [selectedPlan, setSelectedPlan] = React.useState<string>('all_access');
+  const [currentMembership, setCurrentMembership] = React.useState<string | null>(localStorage.getItem('user_membership'));
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [isSuccess, setIsSuccess] = useState(false);
+
+  React.useEffect(() => {
+    const checkMembership = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('plan_id')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .gt('expires_at', new Date().toISOString())
+          .maybeSingle();
+        
+        if (subscription) {
+          toast.info('Ya tienes una suscripción activa');
+          navigate('/premium', { replace: true });
+        } else {
+          setCurrentMembership(null);
+          localStorage.removeItem('user_membership');
+        }
+      }
+    };
+    checkMembership();
+  }, [navigate]);
 
   const plans: Record<string, any> = {
     'all_access': {
@@ -47,7 +73,7 @@ const SubscriptionCheckoutPage = () => {
         .from('subscriptions')
         .upsert({
           user_id: user.id,
-          plan_id: plan.name,
+          plan_id: 'Acceso Total',
           status: 'active',
           price_paid: parseFloat(price as string),
           billing_period: billingCycle,
@@ -57,7 +83,7 @@ const SubscriptionCheckoutPage = () => {
 
       if (error) throw error;
 
-      localStorage.setItem('user_membership', plan.name);
+      localStorage.setItem('user_membership', 'Acceso Total');
       
       // Show success screen instead of redirecting
       setIsSuccess(true);
@@ -89,20 +115,12 @@ const SubscriptionCheckoutPage = () => {
           </p>
         </div>
 
-        <div className="w-full max-w-xs pt-8 space-y-4">
+        <div className="w-full max-w-xs pt-8">
           <Button 
-            onClick={() => navigate(plan.name === 'Acceso Total' ? '/create' : '/', { replace: true })} 
-            className={`w-full h-14 rounded-2xl font-black text-white bg-gradient-to-r ${plan.gradient} shadow-xl hover:opacity-90`}
+            onClick={() => window.location.href = '/'} 
+            className={`w-full h-14 rounded-2xl font-black text-white bg-gradient-to-r ${plan.gradient} shadow-xl hover:opacity-90 uppercase tracking-widest text-xs`}
           >
-            {plan.name === 'Acceso Total' ? 'Crear mi primer evento' : 'Volver al Inicio'}
-            <Rocket className="w-5 h-5 ml-2" />
-          </Button>
-          <Button 
-            variant="ghost"
-            onClick={() => navigate('/settings', { replace: true })} 
-            className="w-full h-14 rounded-2xl font-bold text-muted-foreground hover:text-foreground"
-          >
-            Ver mis beneficios
+            Finalizar
           </Button>
         </div>
       </div>

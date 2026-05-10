@@ -21,6 +21,8 @@ const CheckoutPage = () => {
   const [selectedZone, setSelectedZone] = useState('General');
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [purchasedTicketId, setPurchasedTicketId] = useState<string | null>(null);
 
   React.useEffect(() => {
     const fetchEvent = async () => {
@@ -45,10 +47,11 @@ const CheckoutPage = () => {
     if (id) fetchEvent();
   }, [id, navigate]);
 
+  const basePrice = Number(event?.price) || 0;
   const zones = [
-    { name: 'General', price: 15 },
-    { name: 'VIP', price: 45 },
-    { name: 'Platinum', price: 85 }
+    { name: 'General', price: basePrice },
+    { name: 'VIP', price: Math.round(basePrice * 2.5) },
+    { name: 'Platinum', price: Math.round(basePrice * 4.5) }
   ];
 
   const currentZone = zones.find(z => z.name === selectedZone) || zones[0];
@@ -63,7 +66,7 @@ const CheckoutPage = () => {
         return;
       }
 
-      const { error } = await supabase.from('tickets').insert({
+      const { data, error } = await supabase.from('tickets').insert({
         user_id: user.id,
         event_id: id,
         zone: selectedZone,
@@ -71,12 +74,15 @@ const CheckoutPage = () => {
         total_price: total,
         status: 'active',
         purchase_date: new Date().toISOString()
-      });
+      }).select().single();
 
       if (error) throw error;
 
-      toast.success(t('checkout.success'));
-      setTimeout(() => navigate(`/event/${id}`), 2000);
+      // Dispatch global event for other components to refresh
+      window.dispatchEvent(new Event('ticket_purchased'));
+      
+      setIsSuccess(true);
+      setPurchasedTicketId(data.id);
     } catch (error: any) {
       toast.error(t('checkout.error') + ': ' + error.message);
       console.error(error);
@@ -189,19 +195,73 @@ const CheckoutPage = () => {
       </div>
 
       {/* Purchase Summary Floating Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-xl border-t border-border flex items-center justify-between z-50">
-        <div className="flex flex-col">
-          <span className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">{t('checkout.total_to_pay')}</span>
-          <span className="text-2xl font-black text-foreground">${total}</span>
+      {!isSuccess && (
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-xl border-t border-border flex items-center justify-between z-50">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">{t('checkout.total_to_pay')}</span>
+            <span className="text-2xl font-black text-foreground">${total}</span>
+          </div>
+          <Button 
+            onClick={handlePurchase}
+            className="rounded-[24px] bg-foreground text-background px-10 h-14 font-black uppercase tracking-[0.15em] shadow-2xl shadow-black/20 hover:opacity-90 transition-all flex items-center gap-2"
+          >
+            <Lock className="w-4 h-4" />
+            {t('checkout.pay_now')}
+          </Button>
         </div>
-        <Button 
-          onClick={handlePurchase}
-          className="rounded-[24px] bg-foreground text-background px-10 h-14 font-black uppercase tracking-[0.15em] shadow-2xl shadow-black/20 hover:opacity-90 transition-all flex items-center gap-2"
-        >
-          <Lock className="w-4 h-4" />
-          {t('checkout.pay_now')}
-        </Button>
-      </div>
+      )}
+
+      {/* Success Modal / View */}
+      {isSuccess && (
+        <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-8 animate-in fade-in zoom-in duration-300">
+          <div className="w-full max-w-sm flex flex-col items-center text-center space-y-6">
+            <div className="w-24 h-24 rounded-[32px] bg-emerald-500 flex items-center justify-center shadow-2xl shadow-emerald-500/40 animate-bounce">
+              <ShieldCheck className="w-12 h-12 text-white" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-3xl font-black text-foreground tracking-tight italic">¡FELICIDADES!</h2>
+              <p className="text-muted-foreground font-medium">Has adquirido tu entrada con éxito. Prepárate para una experiencia inolvidable.</p>
+            </div>
+
+            <div className="w-full p-6 bg-card rounded-[32px] border border-border space-y-4">
+              <div className="flex justify-between items-center pb-4 border-b border-border/50">
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Evento</p>
+                <p className="text-sm font-black text-foreground truncate max-w-[150px]">{event.title}</p>
+              </div>
+              <div className="flex justify-between items-center pb-4 border-b border-border/50">
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Zona</p>
+                <p className="text-sm font-black text-emerald-500">{selectedZone}</p>
+              </div>
+              <div className="flex justify-between items-center">
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Total</p>
+                <p className="text-lg font-black text-foreground">${total}</p>
+              </div>
+            </div>
+
+            <div className="w-full space-y-3 pt-4">
+              <Button 
+                onClick={() => navigate(`/ticket/${purchasedTicketId}`, { replace: true })}
+                className="w-full h-14 rounded-2xl bg-foreground text-background font-black uppercase tracking-widest text-[11px] shadow-xl shadow-black/10"
+              >
+                Ver mi entrada
+              </Button>
+              <Button 
+                variant="ghost"
+                onClick={() => navigate(`/event/${id}`, { replace: true })}
+                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] text-muted-foreground"
+              >
+                Volver al evento
+              </Button>
+            </div>
+          </div>
+
+          {/* Decorative elements */}
+          <div className="absolute top-20 left-10 w-4 h-4 bg-primary/20 rounded-full animate-pulse"></div>
+          <div className="absolute bottom-40 right-12 w-6 h-6 bg-emerald-500/20 rounded-full animate-pulse delay-700"></div>
+          <div className="absolute top-1/2 right-4 w-3 h-3 bg-amber-500/20 rounded-full animate-pulse delay-300"></div>
+        </div>
+      )}
     </div>
   );
 };

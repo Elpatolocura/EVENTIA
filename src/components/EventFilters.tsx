@@ -34,83 +34,84 @@ const EventFilters: React.FC<EventFiltersProps> = ({
   isLoading = false,
   userLocation
 }) => {
+  const { t } = useTranslation();
   const filters = useMemo(() => [
     {
       id: 'featured' as FilterType,
-      label: 'Destacados',
+      label: t('filters.featured'),
       icon: Sparkles,
       color: 'from-yellow-400 to-yellow-600',
       bgColor: 'bg-yellow-500/10',
       borderColor: 'border-yellow-500/20',
-      description: 'Eventos recientes'
+      description: t('filters.featured_desc')
     },
     {
       id: 'popular' as FilterType,
-      label: 'Populares',
+      label: t('filters.popular'),
       icon: Heart,
       color: 'from-red-400 to-red-600',
       bgColor: 'bg-red-500/10',
       borderColor: 'border-red-500/20',
-      description: 'Más asistentes'
+      description: t('filters.popular_desc')
     },
     {
       id: 'today' as FilterType,
-      label: 'Hoy',
+      label: t('filters.today'),
       icon: Calendar,
       color: 'from-blue-400 to-blue-600',
       bgColor: 'bg-blue-500/10',
       borderColor: 'border-blue-500/20',
-      description: 'Para hoy'
+      description: t('filters.today_desc')
     },
     {
       id: 'tomorrow' as FilterType,
-      label: 'Mañana',
+      label: t('filters.tomorrow'),
       icon: Clock,
       color: 'from-purple-400 to-purple-600',
       bgColor: 'bg-purple-500/10',
       borderColor: 'border-purple-500/20',
-      description: 'Para mañana'
+      description: t('filters.tomorrow_desc')
     },
     {
       id: 'nearby' as FilterType,
-      label: 'Cerca',
+      label: t('filters.nearby'),
       icon: MapPin,
       color: 'from-green-400 to-green-600',
       bgColor: 'bg-green-500/10',
       borderColor: 'border-green-500/20',
-      description: userLocation?.city ? `En ${userLocation.city}` : 'Con ubicación'
+      description: userLocation?.city ? `${t('filters.nearby_desc')} ${userLocation.city}` : t('filters.nearby_desc')
     },
     {
       id: 'all' as FilterType,
-      label: 'Todos',
+      label: t('filters.all'),
       icon: Star,
       color: 'from-gray-400 to-gray-600',
       bgColor: 'bg-gray-500/10',
       borderColor: 'border-gray-500/20',
-      description: 'Todos los eventos'
+      description: t('filters.all_desc')
     }
-  ], [userLocation?.city]);
+  ], [userLocation?.city, t]);
 
   const priceFilters = useMemo(() => [
     {
       id: 'all' as PriceFilterType,
-      label: 'Cualquier precio',
+      label: t('filters.price.any'),
       icon: DollarSign,
-      description: 'Todos los precios'
+      description: t('filters.price.any_desc')
     },
     {
       id: 'free' as PriceFilterType,
-      label: 'Gratis',
+      label: t('filters.price.free'),
       icon: Star,
-      description: 'Sin costo'
+      description: t('filters.price.free_desc')
     },
     {
       id: 'paid' as PriceFilterType,
-      label: 'De pago',
+      label: t('filters.price.paid'),
       icon: DollarSign,
-      description: 'Con costo'
+      description: t('filters.price.paid_desc')
     }
-  ], []);
+  ], [t]);
 
   return (
     <div className="px-6 py-4 space-y-6">
@@ -203,39 +204,24 @@ const EventFilters: React.FC<EventFiltersProps> = ({
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">Cargando eventos...</span>
+              <span className="text-sm text-muted-foreground">{t('filters.results.loading')}</span>
             </>
           ) : (
             <>
               <Badge variant="secondary" className="text-xs">
-                {eventCount} {eventCount === 1 ? 'evento' : 'eventos'}
+                {eventCount} {eventCount === 1 ? t('filters.results.single') : t('filters.results.multiple')}
               </Badge>
               <span className="text-sm text-muted-foreground">
-                {activeFilter === 'all' ? 'Todos los eventos disponibles' :
-                 activeFilter === 'featured' ? 'Eventos más recientes' :
-                 activeFilter === 'popular' ? 'Eventos con más asistentes' :
-                 activeFilter === 'today' ? 'Eventos programados para hoy' :
-                 activeFilter === 'tomorrow' ? 'Eventos programados para mañana' :
-                 'Eventos con ubicación definida'}
+                {activeFilter === 'all' ? t('filters.results.all_available') :
+                 activeFilter === 'featured' ? t('filters.results.featured_active') :
+                 activeFilter === 'popular' ? t('filters.results.popular_active') :
+                 activeFilter === 'today' ? t('filters.results.today_active') :
+                 activeFilter === 'tomorrow' ? t('filters.results.tomorrow_active') :
+                 t('filters.results.nearby_active')}
               </span>
             </>
           )}
         </div>
-
-        {/* Clear Filter Button */}
-        {(activeFilter !== 'all' || priceFilter !== 'all') && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              onFilterChange('all');
-              onPriceFilterChange('all');
-            }}
-            className="text-xs h-8 px-3"
-          >
-            Ver todos
-          </Button>
-        )}
       </div>
     </div>
   );

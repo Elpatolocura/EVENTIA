@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useSmartBack } from '@/hooks/useSmartBack';
 import { ArrowLeft, Bell, MessageSquare, Ticket, Star, Info, Sparkles, MoreVertical, CheckCheck, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator 
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner'; // ✅ AGREGADO: faltaba este import
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
@@ -21,7 +22,27 @@ const NotificationsPage = () => {
 
   const fetchNotifications = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // 🔹 Manejo de error de lock
+      let user = null;
+
+      try {
+        const result = await supabase.auth.getUser();
+        user = result.data?.user;
+      } catch (error: any) {
+        if (error?.message?.includes('Lock') || error?.message?.includes('lock')) {
+          console.log('⚠️ Lock error en NotificationsPage, reintentando...');
+          await new Promise(resolve => setTimeout(resolve, 150));
+          try {
+            const retry = await supabase.auth.getUser();
+            user = retry.data?.user;
+          } catch (retryError) {
+            console.log('Error en reintento de NotificationsPage:', retryError);
+          }
+        } else {
+          console.error('Error inesperado:', error);
+        }
+      }
+
       if (user) {
         const { data, error } = await supabase
           .from('notifications')
@@ -45,13 +66,26 @@ const NotificationsPage = () => {
 
   const markAllAsRead = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // 🔹 Manejo de error de lock también aquí
+      let user = null;
+
+      try {
+        const result = await supabase.auth.getUser();
+        user = result.data?.user;
+      } catch (error: any) {
+        if (error?.message?.includes('Lock') || error?.message?.includes('lock')) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          const retry = await supabase.auth.getUser();
+          user = retry.data?.user;
+        }
+      }
+
       if (user) {
         const { error } = await supabase
           .from('notifications')
           .update({ read: true })
           .eq('user_id', user.id);
-        
+
         if (error) throw error;
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         toast.success('Todas las notificaciones marcadas como leídas');
@@ -63,13 +97,26 @@ const NotificationsPage = () => {
 
   const clearAll = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // 🔹 Manejo de error de lock también aquí
+      let user = null;
+
+      try {
+        const result = await supabase.auth.getUser();
+        user = result.data?.user;
+      } catch (error: any) {
+        if (error?.message?.includes('Lock') || error?.message?.includes('lock')) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          const retry = await supabase.auth.getUser();
+          user = retry.data?.user;
+        }
+      }
+
       if (user) {
         const { error } = await supabase
           .from('notifications')
           .delete()
           .eq('user_id', user.id);
-        
+
         if (error) throw error;
         setNotifications([]);
         toast.success('Notificaciones eliminadas');
@@ -107,7 +154,7 @@ const NotificationsPage = () => {
           </button>
           <h1 className="text-xl font-bold">Notificaciones</h1>
         </div>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="p-2 rounded-xl hover:bg-secondary transition-all active:scale-90">
@@ -115,14 +162,14 @@ const NotificationsPage = () => {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-border bg-card">
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={markAllAsRead}
               className="gap-3 px-4 py-3 rounded-xl cursor-pointer font-bold text-[13px] text-foreground hover:bg-secondary focus:bg-secondary"
             >
               <CheckCheck className="w-4 h-4 text-emerald-500" /> Marcar como leídas
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1 bg-border" />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={clearAll}
               className="gap-3 px-4 py-3 rounded-xl cursor-pointer font-bold text-[13px] text-rose-500 hover:bg-rose-500/10 focus:bg-rose-500/10 focus:text-rose-600"
             >
@@ -135,16 +182,15 @@ const NotificationsPage = () => {
       <div className="divide-y divide-border">
         {notifications.length > 0 ? (
           notifications.map((notif) => (
-            <div 
-              key={notif.id} 
+            <div
+              key={notif.id}
               className={`p-5 flex gap-4 transition-colors hover:bg-secondary/30 ${!notif.read ? 'bg-primary/5' : ''}`}
             >
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                !notif.read ? 'bg-background shadow-sm border border-border/50' : 'bg-secondary'
-              }`}>
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${!notif.read ? 'bg-background shadow-sm border border-border/50' : 'bg-secondary'
+                }`}>
                 {getIcon(notif.type)}
               </div>
-              
+
               <div className="flex-1 space-y-1">
                 <div className="flex justify-between items-start gap-2">
                   <h3 className={`text-sm font-bold leading-tight ${!notif.read ? 'text-foreground' : 'text-foreground/80'}`}>
@@ -156,7 +202,7 @@ const NotificationsPage = () => {
                   {notif.message}
                 </p>
               </div>
-              
+
               {!notif.read && (
                 <div className="w-2 h-2 rounded-full bg-primary mt-2 shadow-[0_0_8px_rgba(var(--primary),0.5)]"></div>
               )}
@@ -171,13 +217,13 @@ const NotificationsPage = () => {
                 <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-amber-300 animate-pulse" />
               </div>
             </div>
-            
+
             <h3 className="text-2xl font-black text-foreground tracking-tight mb-3">¡Todo al día!</h3>
             <p className="text-muted-foreground text-[15px] font-medium leading-relaxed max-w-[240px] mx-auto mb-10">
               No hay nuevas notificaciones. ¡Es un buen momento para explorar nuevos eventos!
             </p>
-            
-            <Button 
+
+            <Button
               onClick={() => navigate('/')}
               className="w-full h-14 rounded-2xl bg-foreground text-background font-black text-sm uppercase tracking-widest shadow-xl shadow-foreground/10 active:scale-95 transition-all hover:opacity-90 border-none"
             >

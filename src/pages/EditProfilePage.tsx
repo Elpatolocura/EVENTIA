@@ -8,14 +8,17 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { allCategories, categoryEmojis } from '@/data/mockData';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, X, ChevronDown, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { colombiaCities, type ColombiaCity } from '@/data/colombiaData';
 
 const EditProfilePage = () => {
   const navigate = useNavigate();
   const goBack = useSmartBack('/profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -27,6 +30,17 @@ const EditProfilePage = () => {
   });
 
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
+  const [showCitySelector, setShowCitySelector] = useState(false);
+  const [citySearch, setCitySearch] = useState('');
+  const [filteredCities, setFilteredCities] = useState<ColombiaCity[]>(colombiaCities);
+
+  useEffect(() => {
+    const filtered = colombiaCities.filter(city => 
+      city.name.toLowerCase().includes(citySearch.toLowerCase()) || 
+      city.department.toLowerCase().includes(citySearch.toLowerCase())
+    );
+    setFilteredCities(filtered.slice(0, 50)); // Limit to 50 for performance
+  }, [citySearch]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -44,10 +58,16 @@ const EditProfilePage = () => {
           .eq('id', user.id)
           .single();
 
+        let phoneValue = user.user_metadata?.phone || profile?.phone || '';
+        // If phone doesn't have +57, we add it for the UI
+        if (phoneValue && !phoneValue.startsWith('+57')) {
+          phoneValue = phoneValue.replace(/^\+?/, '+57 ');
+        }
+
         setFormData({
           full_name: profile?.full_name || user.user_metadata?.full_name || '',
           email: user.email || '',
-          phone: user.user_metadata?.phone || profile?.phone || '',
+          phone: phoneValue,
           location: user.user_metadata?.location || profile?.location || '',
           bio: profile?.bio || user.user_metadata?.bio || '',
           avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || ''
@@ -58,6 +78,15 @@ const EditProfilePage = () => {
         } else if (user.user_metadata?.preferences) {
           setSelectedPreferences(user.user_metadata.preferences);
         }
+
+        // Check premium status
+        const { data: subs } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+        
+        setIsPremium(subs && subs.length > 0);
       } catch (error) {
         console.error('Error fetching profile:', error);
       } finally {
@@ -144,6 +173,41 @@ const EditProfilePage = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const improveBioWithAI = async () => {
+    if (!isPremium) {
+      toast.error('Esta función es exclusiva para usuarios Premium', {
+        action: {
+          label: 'Ver Planes',
+          onClick: () => navigate('/premium')
+        },
+        duration: 5000
+      });
+      return;
+    }
+
+    if (!formData.bio) {
+      toast.error('Escribe algo primero para poder mejorar la biografía');
+      return;
+    }
+
+    setIsAiLoading(true);
+    
+    // Simulating AI delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    const improvements = [
+      `Apasionado por la vida y los eventos únicos. Siempre buscando nuevas experiencias y personas increíbles con quienes compartir momentos inolvidables. ✨`,
+      `Entusiasta de la cultura y el entretenimiento. Me encanta descubrir lugares nuevos, asistir a los mejores eventos de la ciudad y conectar con la comunidad local. 🚀`,
+      `Organizador y asistente frecuente. Mi objetivo es aprovechar al máximo cada oportunidad social y vivir experiencias que valgan la pena contar. 💎`,
+      `Explorador de eventos locales. Especializado en encontrar los planes más exclusivos y disfrutar de la mejor energía de la ciudad junto a gente con mis mismos intereses.`
+    ];
+
+    const randomImp = improvements[Math.floor(Math.random() * improvements.length)];
+    setFormData(prev => ({ ...prev, bio: randomImp }));
+    setIsAiLoading(false);
+    toast.success('Biografía mejorada con IA');
   };
 
   if (loading) {
@@ -235,36 +299,113 @@ const EditProfilePage = () => {
 
           <div className="space-y-2">
             <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Teléfono</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="relative flex items-center">
+              <div className="absolute left-3 flex items-center gap-2 pointer-events-none">
+                <span className="text-lg">🇨🇴</span>
+                <span className="text-sm font-bold text-foreground">+57</span>
+                <div className="w-[1px] h-4 bg-border ml-1" />
+              </div>
               <Input 
                 id="phone"
                 name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="+1 234 567 8900"
-                className="pl-10 h-12 rounded-xl bg-secondary/50 border-transparent focus-visible:ring-primary/20"
+                type="tel"
+                value={formData.phone.replace('+57 ', '').replace('+57', '')}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setFormData({ ...formData, phone: val ? `+57 ${val}` : '' });
+                }}
+                placeholder="300 123 4567"
+                className="pl-20 h-12 rounded-xl bg-secondary/50 border-transparent focus-visible:ring-primary/20 font-medium"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="location" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ubicación (Ciudad)</Label>
-            <div className="relative">
+          <div className="space-y-2 relative">
+            <Label htmlFor="location" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ubicación (Colombia)</Label>
+            <div 
+              className="relative cursor-pointer"
+              onClick={() => setShowCitySelector(true)}
+            >
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                id="location"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="Ej. Ciudad de México"
-                className="pl-10 h-12 rounded-xl bg-secondary/50 border-transparent focus-visible:ring-primary/20"
-              />
+              <div className="w-full pl-10 pr-10 h-12 flex items-center rounded-xl bg-secondary/50 border-transparent text-sm font-medium">
+                {formData.location || "Selecciona tu ciudad"}
+              </div>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             </div>
+
+            <AnimatePresence>
+              {showCitySelector && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className="w-full max-w-sm bg-background rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+                  >
+                    <div className="p-6 border-b border-border">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold">Selecciona tu Ciudad</h3>
+                        <button 
+                          onClick={() => setShowCitySelector(false)}
+                          className="p-2 rounded-full hover:bg-muted"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input 
+                          autoFocus
+                          placeholder="Buscar ciudad o departamento..."
+                          value={citySearch}
+                          onChange={(e) => setCitySearch(e.target.value)}
+                          className="pl-10 h-11 rounded-xl bg-secondary/50 border-transparent"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                      {filteredCities.length > 0 ? (
+                        filteredCities.map((city, idx) => (
+                          <button
+                            key={`${city.name}-${idx}`}
+                            onClick={() => {
+                              setFormData({ ...formData, location: `${city.name}, ${city.department}` });
+                              setShowCitySelector(false);
+                              setCitySearch('');
+                            }}
+                            className={`w-full flex flex-col items-start p-3 rounded-2xl transition-colors hover:bg-primary/10 ${
+                              formData.location === `${city.name}, ${city.department}` ? 'bg-primary/5 border border-primary/20' : ''
+                            }`}
+                          >
+                            <span className="font-bold text-sm">{city.name}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{city.department}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center text-muted-foreground italic">
+                          No encontramos esa ciudad...
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bio" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Biografía</Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="bio" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Biografía</Label>
+              <button 
+                onClick={improveBioWithAI}
+                disabled={isAiLoading}
+                className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-2.5 py-1 rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50"
+              >
+                {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                IA Mejorar
+              </button>
+            </div>
             <textarea 
               id="bio"
               name="bio"

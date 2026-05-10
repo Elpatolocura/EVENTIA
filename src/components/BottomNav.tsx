@@ -17,16 +17,16 @@ const BottomNav = () => {
     '/welcome',
     '/onboarding',
     '/chat/',
+    '/chat-settings',
     '/settings',
     '/premium',
     '/subscribe',
     '/my-events',
     '/notifications',
     '/ticket',
-    '/profile',
-    '/profile/following',
-    '/profile/followers',
-    '/terms'
+    '/profile/edit',
+    '/terms',
+    '/report'
   ];
 
   // Check if current path starts with any of the hidden paths

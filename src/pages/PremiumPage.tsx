@@ -10,12 +10,40 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 const PremiumPage = () => {
   const navigate = useNavigate();
   const goBack = useSmartBack('/');
   const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = React.useState<string>('all_access');
+  const [currentMembership, setCurrentMembership] = React.useState<string | null>(localStorage.getItem('user_membership'));
+
+  React.useEffect(() => {
+    const checkMembership = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('plan_id')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .gt('expires_at', new Date().toISOString())
+          .maybeSingle();
+        
+        if (subscription) {
+          // Normalizar para que coincida con los IDs internos
+          const planId = subscription.plan_id === 'Acceso Total' ? 'all_access' : subscription.plan_id;
+          setCurrentMembership(planId);
+          localStorage.setItem('user_membership', planId);
+        } else {
+          setCurrentMembership(null);
+          localStorage.removeItem('user_membership');
+        }
+      }
+    };
+    checkMembership();
+  }, []);
 
   const plans = [
     {
@@ -163,6 +191,7 @@ const PremiumPage = () => {
                 </div>
 
                 <Button 
+                  disabled={currentMembership === plan.id || (plan.id === 'Basic' && !currentMembership)}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (plan.id === 'Basic') {
@@ -177,9 +206,11 @@ const PremiumPage = () => {
                         ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-xl shadow-indigo-500/20' 
                         : 'bg-white text-black hover:bg-zinc-200'
                       : 'bg-white/10 text-zinc-500'
-                  }`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {plan.buttonText}
+                  {currentMembership === plan.id || (plan.id === 'Basic' && !currentMembership)
+                    ? 'Plan Actual' 
+                    : plan.buttonText}
                 </Button>
               </div>
             </div>

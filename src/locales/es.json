@@ -25,7 +25,41 @@
     "guest": "Invitado",
     "quantity": "Cantidad",
     "total": "Total",
-    "event": "Evento"
+    "event": "Evento",
+    "clear": "Limpiar"
+  },
+  "filters": {
+    "all": "Todos",
+    "featured": "Destacados",
+    "popular": "Populares",
+    "today": "Hoy",
+    "tomorrow": "Mañana",
+    "nearby": "Cerca de ti",
+    "all_desc": "Todos los eventos",
+    "featured_desc": "Eventos recientes",
+    "popular_desc": "Más asistentes",
+    "today_desc": "Para hoy",
+    "tomorrow_desc": "Para mañana",
+    "nearby_desc": "En tu ciudad",
+    "price": {
+      "any": "Cualquier precio",
+      "free": "Gratis",
+      "paid": "De pago",
+      "any_desc": "Todos los precios",
+      "free_desc": "Sin costo",
+      "paid_desc": "Con costo"
+    },
+    "results": {
+      "single": "evento",
+      "multiple": "eventos",
+      "loading": "Cargando eventos...",
+      "all_available": "Todos los eventos disponibles",
+      "featured_active": "Eventos más recientes",
+      "popular_active": "Eventos con más asistentes",
+      "today_active": "Eventos programados para hoy",
+      "tomorrow_active": "Eventos para mañana",
+      "nearby_active": "Eventos cerca de tu ubicación"
+    }
   },
   "location": {
     "current_location": "Ubicación actual",
@@ -43,10 +77,22 @@
     "personalization": "Personalización",
     "appearance_label": "Apariencia y Temas",
     "interests": "Intereses y Categorías",
+    "preferences": "Preferencias",
+    "customize": "Personalizar",
+    "customize_desc": "Color y estilo de la interfaz",
+    "edit_profile": "Editar Perfil",
+    "edit_profile_desc": "Foto, nombre, biografía y más",
+    "change_password": "Cambiar Contraseña",
+    "change_password_desc": "Actualizar tus credenciales de acceso",
+    "membership": "Membresía",
+    "help": "Centro de Ayuda",
+    "help_desc": "Preguntas frecuentes y soporte",
+    "logout_desc": "Cerrar tu sesión actual",
     "language": "Idioma",
     "dark_mode": "Modo Oscuro",
     "support": "Soporte",
-    "privacy": "Privacidad y Términos",
+    "privacy": "Políticas y Privacidad",
+    "privacy_desc": "Términos, condiciones y privacidad",
     "help_center": "Centro de Ayuda",
     "logout": "Cerrar Sesión",
     "version": "Eventia v1.0.0 · Hecho con ❤️ para la comunidad",
@@ -57,8 +103,12 @@
     "notifications_on": "Notificaciones activadas",
     "notifications_off": "Notificaciones silenciadas",
     "none": "Ninguno",
+    "confirm_password": "Confirmar Contraseña",
+    "password_updated": "Contraseña actualizada con éxito",
     "appearance": {
       "title": "Apariencia",
+      "color_updated": "Color de acento actualizado",
+      "style_updated": "Estilo de interfaz actualizado",
       "accent_color": "Color de Acento",
       "interface_style": "Estilo de Interfaz",
       "requires_pro": "Requiere Acceso Total",
@@ -67,6 +117,26 @@
       "color_selected": "Color {{name}} seleccionado",
       "style_applied": "Estilo {{style}} aplicado",
       "upgrade_button": "Mejorar a Acceso Total"
+    },
+    "legal": {
+      "title": "Aviso Legal",
+      "terms_title": "Términos y Condiciones",
+      "last_update": "Última actualización: 18 de Mayo, 2026",
+      "sections": {
+        "terms": {
+          "title": "1. Términos de Servicio",
+          "content": "Al utilizar la plataforma Eventia, aceptas cumplir con nuestras normas comunitarias. El uso de la cuenta es personal e intransferible. Nos reservamos el derecho de suspender cuentas que infrinjan nuestras políticas de respeto y veracidad en la creación de eventos."
+        },
+        "cancellation": {
+          "title": "2. Política de Cancelación",
+          "content": "Las suscripciones Premium pueden ser canceladas en cualquier momento desde los ajustes de perfil. La cancelación tendrá efecto al final del periodo de facturación actual. No se realizan reembolsos proporcionales por meses ya iniciados."
+        },
+        "privacy": {
+          "title": "3. Privacidad de Datos",
+          "content": "Tus datos están protegidos bajo el estándar RGPD. Solo compartimos la información estrictamente necesaria con los organizadores de eventos para la gestión de tus entradas y asistencia."
+        }
+      },
+      "footer": "Para cualquier duda legal, puedes contactarnos en"
     }
   },
   "nav": {

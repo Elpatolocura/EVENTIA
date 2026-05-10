@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Bell, MapPin, ChevronRight,
-  Sparkles, Heart, Calendar
+  Sparkles, Heart, Calendar, Star, Zap, Clock, LayoutGrid
 } from 'lucide-react';
 import EventFilters, { FilterType } from '@/components/EventFilters';
 import { Input } from '@/components/ui/input';
@@ -14,10 +14,12 @@ import EventCard from '@/components/EventCard';
 import EventCardSkeleton from '@/components/EventCardSkeleton';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from '@/hooks/useLocation';
+import { useAuth } from '@/contexts/AuthContext';
 
 const HomePage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user, loading: authLoading } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem('home_query') || '');
   const [priceFilter, setPriceFilter] = useState<'all' | 'free' | 'paid'>(() => (sessionStorage.getItem('home_price') as 'all' | 'free' | 'paid') || 'all');
@@ -27,6 +29,7 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
   const [userPreferences, setUserPreferences] = useState<string[]>([]);
+  
   const userNameDisplay = useMemo(() => {
     if (!userName || userName === 'Guest' || userName === 'Invitado') {
       return t('common.guest');
@@ -36,233 +39,128 @@ const HomePage = () => {
 
   const { latitude, longitude, city, loading: locLoading, requestLocation, calculateDistance, permission, setManualLocation } = useLocation();
 
+  // Helper to get header info based on filter
+  const headerInfo = useMemo(() => {
+    switch (activeFilter) {
+      case 'featured':
+        return { icon: <Star className="w-5 h-5 text-amber-500 fill-amber-500" />, title: t('filters.featured') || 'Destacados' };
+      case 'popular':
+        return { icon: <Zap className="w-5 h-5 text-orange-500 fill-orange-500" />, title: t('filters.popular') || 'Populares' };
+      case 'today':
+        return { icon: <Calendar className="w-5 h-5 text-blue-500 fill-blue-500" />, title: t('filters.today') || 'Eventos de hoy' };
+      case 'tomorrow':
+        return { icon: <Clock className="w-5 h-5 text-indigo-500 fill-indigo-500" />, title: t('filters.tomorrow') || 'Para mañana' };
+      case 'nearby':
+        return { icon: <MapPin className="w-5 h-5 text-rose-500 fill-rose-500" />, title: t('filters.nearby') || 'Cerca de ti' };
+      case 'all':
+      default:
+        return { icon: <LayoutGrid className="w-5 h-5 text-primary" />, title: t('filters.all') || 'Todos los eventos' };
+    }
+  }, [activeFilter, t]);
+
+  const fetchEventsWithRetry = async (retryCount = 0): Promise<any[]> => {
+    const maxRetries = 3;
+    const delays = [500, 1000, 2000];
+
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      const isRecoverable = error?.message?.includes('Failed to fetch') ||
+        error?.message?.includes('ERR_CONNECTION');
+
+      if (isRecoverable && retryCount < maxRetries) {
+        console.log(`⚠️ Error de red al cargar eventos, reintentando ${retryCount + 1}/${maxRetries}...`);
+        await new Promise(resolve => setTimeout(resolve, delays[retryCount]));
+        return fetchEventsWithRetry(retryCount + 1);
+      }
+      throw error;
+    }
+  };
+
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchInitialData = async () => {
-      try {
-        // Fetch user profile
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', user.id)
-            .single();
-
-          if (profile?.full_name) {
-            setUserName(profile.full_name.split(' ')[0]);
-          } else {
-            setUserName(t('profile.profile'));
-          }
-
-          // Fetch preferences for smart feed
-          const { data: prefData } = await supabase
-            .from('profiles')
-            .select('preferences')
-            .eq('id', user.id)
-            .single();
-
-          if (prefData?.preferences) {
-            setUserPreferences(prefData.preferences);
-          }
-        } else {
-          // If no user is logged in, allow access to home page
-          console.log('No user found, but allowing access to home page');
-        }
-
-        // Fetch events FIRST
-        const { data: eventsData, error } = await supabase
-          .from('events')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        // NOW check if eventsData exists and has data
-        if (!eventsData || eventsData.length === 0) {
-          console.log('🔄 Usando datos de ejemplo porque no se pudieron cargar eventos de Supabase');
-          const mockEvents = [
-            {
-              id: 'mock-1',
-              title: 'Concierto de Rock Mexicano',
-              description: 'El mejor concierto de rock nacional',
-              category: 'música',
-              event_date: '2026-05-06',
-              event_time: '20:00:00',
-              attendees_count: 150,
-              price: 250,
-              currency: 'MXN',
-              latitude: 19.4326,
-              longitude: -99.1332,
-              created_at: new Date().toISOString(),
-              organizer_name: 'Rock MX',
-              is_featured: true
-            },
-            {
-              id: 'mock-2',
-              title: 'Festival Gastronómico',
-              description: 'Degusta los mejores platillos de la ciudad',
-              category: 'gastronomía',
-              event_date: '2026-05-07',
-              event_time: '12:00:00',
-              attendees_count: 200,
-              price: 150,
-              currency: 'MXN',
-              latitude: 19.4242,
-              longitude: -99.1956,
-              created_at: new Date().toISOString(),
-              organizer_name: 'Food Festival',
-              is_featured: false
-            },
-            {
-              id: 'mock-3',
-              title: 'Exposición de Arte Moderno',
-              description: 'Descubre las últimas tendencias artísticas',
-              category: 'arte',
-              event_date: '2026-05-06',
-              event_time: '10:00:00',
-              attendees_count: 80,
-              price: 0,
-              currency: 'MXN',
-              latitude: 19.4133,
-              longitude: -99.1767,
-              created_at: new Date().toISOString(),
-              organizer_name: 'Museo Moderno',
-              is_featured: true
-            },
-            {
-              id: 'mock-4',
-              title: 'Torneo de eSports',
-              description: 'Compite en el torneo más grande de videojuegos',
-              category: 'tech',
-              event_date: '2026-05-08',
-              event_time: '14:00:00',
-              attendees_count: 300,
-              price: 100,
-              currency: 'MXN',
-              latitude: 19.4200,
-              longitude: -99.1600,
-              created_at: new Date().toISOString(),
-              organizer_name: 'Gaming Pro',
-              is_featured: false
-            },
-            {
-              id: 'mock-5',
-              title: 'Yoga en el Parque',
-              description: 'Sesión matutina de yoga al aire libre',
-              category: 'bienestar',
-              event_date: '2026-05-06',
-              event_time: '08:00:00',
-              attendees_count: 25,
-              price: 0,
-              currency: 'MXN',
-              latitude: 19.4167,
-              longitude: -99.1833,
-              created_at: new Date().toISOString(),
-              organizer_name: 'Zen Studio',
-              is_featured: false
-            },
-            {
-              id: 'mock-6',
-              title: 'Maratón CDMX',
-              description: 'La carrera atlética más importante de la ciudad',
-              category: 'deportes',
-              event_date: '2026-05-09',
-              event_time: '07:00:00',
-              attendees_count: 500,
-              price: 120,
-              currency: 'MXN',
-              latitude: 19.3742,
-              longitude: -99.1733,
-              created_at: new Date().toISOString(),
-              organizer_name: 'Instituto del Deporte',
-              is_featured: true
-            }
-          ];
-          setEvents(mockEvents);
-          console.log('✅ Datos de ejemplo cargados:', mockEvents.length, 'eventos');
-        } else {
-          // TEMPORAL: Modificar algunos eventos para mostrar las secciones de demo
-          const eventsToUpdate = eventsData.slice(0, Math.min(10, eventsData.length));
-          const today = new Date().toISOString().split('T')[0];
-          const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-          for (let i = 0; i < eventsToUpdate.length; i++) {
-            const event = eventsToUpdate[i];
-            const updates: any = {};
-
-            // Configurar ubicación (cerca de CDMX para demo)
-            if (!event.latitude || !event.longitude) {
-              updates.latitude = 19.4326 + (Math.random() - 0.5) * 0.1;
-              updates.longitude = -99.1332 + (Math.random() - 0.5) * 0.1;
-            }
-
-            // Primeros 2: destacados
-            if (i < 2) {
-              updates.is_featured = true;
-              updates.attendees_count = Math.floor(Math.random() * 100) + 200;
-            }
-            // Siguientes 3: populares
-            else if (i < 5) {
-              updates.attendees_count = Math.floor(Math.random() * 150) + 100;
-            }
-            // Distribuir fechas
-            if (i < 3) {
-              updates.event_date = today;
-            } else if (i < 6) {
-              updates.event_date = tomorrow;
-            }
-
-            if (Object.keys(updates).length > 0) {
-              try {
-                await supabase
-                  .from('events')
-                  .update(updates)
-                  .eq('id', event.id);
-                console.log(`Updated event ${i + 1}: ${event.title}`, updates);
-              } catch (updateError) {
-                console.log('Error updating event:', updateError);
-              }
-            }
-          }
-
+      if (!user) {
+        setUserName('');
+        setUserPreferences([]);
+        setUserFavorites(new Set());
+        const eventsData = await fetchEventsWithRetry();
+        if (isMounted) {
           setEvents(eventsData);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        if (!userName) {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('full_name, preferences')
+            .eq('id', user.id)
+            .single();
+
+          if (!profileError && isMounted) {
+            if (profile?.full_name) {
+              setUserName(profile.full_name.split(' ')[0]);
+            } else {
+              setUserName(t('profile.profile'));
+            }
+
+            if (profile?.preferences) {
+              setUserPreferences(profile.preferences);
+            }
+          }
         }
 
-        // Fetch favorites if user logged in
-        if (user) {
-          const { data: favs } = await supabase
-            .from('favorites')
-            .select('event_id')
-            .eq('user_id', user.id);
+        const { data: favs } = await supabase
+          .from('favorites')
+          .select('event_id')
+          .eq('user_id', user.id);
 
-          if (favs) {
-            setUserFavorites(new Set(favs.map(f => f.event_id)));
-          }
+        if (favs && isMounted) {
+          setUserFavorites(new Set(favs.map(f => f.event_id)));
+        }
+
+        const eventsData = await fetchEventsWithRetry();
+        if (isMounted) {
+          setEvents(eventsData);
         }
       } catch (error) {
         console.error('Error in fetchInitialData:', error);
+        if (isMounted) setEvents([]);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
-    fetchInitialData();
+    if (!authLoading) {
+      fetchInitialData();
+    }
 
-    // Realtime subscription for ALL events in the home page
+    return () => { isMounted = false; };
+  }, [user?.id, authLoading, t]);
+
+  useEffect(() => {
     const eventsSubscription = supabase
       .channel('home-events-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'events' },
         (payload) => {
-          console.log('Realtime update on HomePage:', payload);
-
           if (payload.eventType === 'INSERT') {
             setEvents(prev => [payload.new, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
             setEvents(prev => prev.map(e => e.id === payload.new.id ? { ...e, ...payload.new } : e));
           } else if (payload.eventType === 'DELETE') {
-            setEvents(prev => prev.filter(e => e.id === payload.old.id));
+            setEvents(prev => prev.filter(e => e.id !== payload.old.id));
           }
         }
       )
@@ -271,9 +169,8 @@ const HomePage = () => {
     return () => {
       supabase.removeChannel(eventsSubscription);
     };
-  }, [navigate, t]);
+  }, []);
 
-  // Save states
   useEffect(() => {
     sessionStorage.setItem('home_query', searchQuery);
   }, [searchQuery]);
@@ -286,7 +183,6 @@ const HomePage = () => {
     sessionStorage.setItem('home_filter', activeFilter);
   }, [activeFilter]);
 
-  // Restore scroll
   useEffect(() => {
     const savedScroll = sessionStorage.getItem('home_scroll');
     if (savedScroll && !loading && events.length > 0) {
@@ -294,7 +190,6 @@ const HomePage = () => {
     }
   }, [loading, events]);
 
-  // Save scroll on change (throttled)
   useEffect(() => {
     let ticking = false;
     const handleScroll = () => {
@@ -310,44 +205,6 @@ const HomePage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Create separate sections for different types of events
-  const featuredEvents = useMemo(() => {
-    return events.filter(event => event.is_featured === true).slice(0, 6);
-  }, [events]);
-
-  const popularEvents = useMemo(() => {
-    return [...events]
-      .filter(event => event.attendees_count > 0)
-      .sort((a, b) => (b.attendees_count || 0) - (a.attendees_count || 0))
-      .slice(0, 6);
-  }, [events]);
-
-  const todayEvents = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    return events
-      .filter(event => event.event_date === today || event.event_date === tomorrow)
-      .slice(0, 8);
-  }, [events]);
-
-  const nearbyEvents = useMemo(() => {
-    if (!latitude || !longitude) return [];
-
-    return events
-      .filter(event => {
-        if (!event.latitude || !event.longitude) return false;
-        const distance = calculateDistance(latitude, longitude, event.latitude, event.longitude);
-        return distance <= 50;
-      })
-      .sort((a, b) => {
-        const distA = calculateDistance(latitude, longitude, a.latitude, a.longitude);
-        const distB = calculateDistance(latitude, longitude, b.latitude, b.longitude);
-        return distA - distB;
-      })
-      .slice(0, 6);
-  }, [events, latitude, longitude, calculateDistance]);
-
-  // Función principal de filtrado
   const getFilteredEvents = useCallback((events: any[], filter: FilterType, search: string, price: string) => {
     let filtered = [...events];
 
@@ -365,21 +222,10 @@ const HomePage = () => {
       case 'today':
         const today = new Date().toISOString().split('T')[0];
         filtered = filtered.filter(event => event.event_date === today);
-        if (filtered.length === 0) {
-          filtered = events
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 3);
-        }
         break;
       case 'tomorrow':
         const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         filtered = filtered.filter(event => event.event_date === tomorrow);
-        if (filtered.length === 0) {
-          filtered = events
-            .filter(event => event.event_date && new Date(event.event_date) > new Date())
-            .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
-            .slice(0, 3);
-        }
         break;
       case 'nearby':
         if (latitude && longitude) {
@@ -394,13 +240,6 @@ const HomePage = () => {
               const distB = calculateDistance(latitude, longitude, b.latitude, b.longitude);
               return distA - distB;
             });
-        } else {
-          filtered = filtered.filter(event => event.latitude && event.longitude);
-        }
-        if (filtered.length === 0) {
-          filtered = events
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 4);
         }
         break;
       case 'all':
@@ -437,13 +276,12 @@ const HomePage = () => {
 
   const toggleFavorite = useCallback(async (e: React.MouseEvent, eventId: string) => {
     e.stopPropagation();
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error(t('event_detail.login_to_fav'));
-        return;
-      }
+    if (!user) {
+      toast.error(t('event_detail.login_to_fav'));
+      return;
+    }
 
+    try {
       const event = events.find(ev => ev.id === eventId);
 
       if (userFavorites.has(eventId)) {
@@ -482,7 +320,7 @@ const HomePage = () => {
       console.error(error);
       toast.error(t('common.error'));
     }
-  }, [events, userFavorites, userPreferences, t]);
+  }, [user, events, userFavorites, userPreferences, t]);
 
   const handleEventClick = useCallback((id: string) => {
     navigate(`/event/${id}`);
@@ -549,42 +387,18 @@ const HomePage = () => {
         userLocation={latitude && longitude ? { latitude, longitude, city } : undefined}
       />
 
-      {/* Entry Type Filter */}
-      <div className="px-6 mb-8 flex gap-2 relative z-10">
-        {[
-          { id: 'all', label: t('common.any_price') },
-          { id: 'free', label: t('common.free') },
-          { id: 'paid', label: t('common.paid') }
-        ].map((filter) => (
-          <button
-            key={filter.id}
-            onClick={() => setPriceFilter(filter.id as 'all' | 'free' | 'paid')}
-            className={`px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all border ${priceFilter === filter.id
-                ? 'bg-foreground text-background border-foreground shadow-lg shadow-foreground/10'
-                : 'bg-card text-muted-foreground border-border hover:border-border/80'
-              }`}
-          >
-            {filter.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Featured Events */}
       <div className="px-6 space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary fill-primary" />
             {loading ? (
               <div className="h-6 w-40 bg-muted animate-pulse rounded-md" />
             ) : (
-              userPreferences.length > 0 ? t('home.recommended') || 'Recomendado para ti' : (latitude && longitude ? t('location.near_you') : t('home.popular_today'))
+              <div className="flex items-center gap-2">
+                {headerInfo.icon}
+                <span>{headerInfo.title}</span>
+              </div>
             )}
           </h2>
-          {!loading && (
-            <Button variant="ghost" className="text-xs font-black text-primary uppercase tracking-widest p-0 h-auto hover:bg-transparent">
-              {t('home.view_all')}
-            </Button>
-          )}
         </div>
 
         <div className="space-y-4">

@@ -6,9 +6,11 @@ import { useNavigate } from 'react-router-dom';
 import { NotificationsService } from '@/lib/notifications';
 import { App as CapacitorApp, AppUrlOpenEvent } from '@capacitor/app';
 import type { Channel } from '@supabase/supabase-js';
+import { useAuth } from '@/contexts/AuthContext';
 
 const NotificationManager = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     // Initialize Native Push Notifications
@@ -27,7 +29,6 @@ const NotificationManager = () => {
     let channel: Channel | null = null;
 
     const setupSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       channel = supabase
@@ -63,7 +64,7 @@ const NotificationManager = () => {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, [navigate]);
+  }, [navigate, user?.id]);
 
   return null; // This component only handles logic
 };

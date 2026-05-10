@@ -93,7 +93,16 @@ const ChatPage = () => {
         }));
 
       const finalEventRooms = [...processedRooms.filter(r => r.type === 'event'), ...ticketedNotJoined]
-        .sort((a, b) => new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime());
+        .map(room => {
+          const settings = JSON.parse(localStorage.getItem(`chat_settings_${room.id}`) || '{}');
+          return { ...room, ...settings };
+        })
+        .filter(room => !room.isHidden)
+        .sort((a, b) => {
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          return new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime();
+        });
 
       setEventRooms(finalEventRooms);
 
@@ -124,8 +133,11 @@ const ChatPage = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_room_members' }, () => fetchChats())
       .subscribe();
 
+    window.addEventListener('chatSettingsUpdate', fetchChats);
+
     return () => {
       supabase.removeChannel(roomChannel);
+      window.removeEventListener('chatSettingsUpdate', fetchChats);
     };
   }, [fetchChats]);
 
@@ -232,9 +244,12 @@ const ChatPage = () => {
           <p className="font-black text-foreground text-[14px] truncate leading-tight group-hover:text-primary transition-colors">
             {room.name}
           </p>
-          <span className="text-[10px] font-bold text-muted-foreground/60 shrink-0 mt-0.5">
-            {formatTime(room.last_message_at)}
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {room.isPinned && <Pin className="w-3 h-3 text-amber-500 fill-amber-500" />}
+            <span className="text-[10px] font-bold text-muted-foreground/60">
+              {formatTime(room.last_message_at)}
+            </span>
+          </div>
         </div>
         
         <div className="flex justify-between items-center">

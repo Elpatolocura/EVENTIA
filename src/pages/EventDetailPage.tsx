@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSmartBack } from '@/hooks/useSmartBack';
 import {
@@ -7,13 +7,19 @@ import {
   Clock, Map as MapIcon,
   Wifi, Snowflake, Tv, Car, Accessibility,
   GlassWater, Music, Sparkles, Utensils, Loader2, MessageCircle, Ticket,
-  X, ChevronLeft, ChevronRight, Maximize2
+  X, ChevronLeft, ChevronRight, Maximize2, Copy, ExternalLink, Facebook
 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -65,6 +71,18 @@ const EventDetailPage = () => {
   const [eventImages, setEventImages] = useState<string[]>([]);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [followId, setFollowId] = useState<string | null>(null);
+  const [ticketsSold, setTicketsSold] = useState(0);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const [isDescriptionTruncated, setIsDescriptionTruncated] = useState(false);
+
+  useEffect(() => {
+    if (descriptionRef.current && !isDescriptionExpanded) {
+      const isTruncated = descriptionRef.current.scrollHeight > descriptionRef.current.offsetHeight;
+      setIsDescriptionTruncated(isTruncated);
+    }
+  }, [event?.description]);
 
   const fetchSecondaryData = async () => {
     if (!id) return;
@@ -84,8 +102,21 @@ const EventDetailPage = () => {
           setFavoriteId(favData.id);
         }
 
-        // Following functionality disabled - table event_followers doesn't exist
-        setIsFollowing(false);
+        // Check following
+        const { data: followData } = await supabase
+          .from('event_followers')
+          .select('id')
+          .eq('event_id', id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (followData) {
+          setIsFollowing(true);
+          setFollowId(followData.id);
+        } else {
+          setIsFollowing(false);
+          setFollowId(null);
+        }
 
         // Check if user has ticket
         const { data: ticketData } = await supabase
@@ -128,18 +159,59 @@ const EventDetailPage = () => {
         setHasMembership(!!subscription);
       }
 
-      // Followers functionality disabled - table event_followers doesn't exist
-      setFollowers([]);
+      // Fetch total tickets sold
+      const { count: ticketsCount } = await supabase
+        .from('tickets')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', id)
+        .eq('status', 'active');
+      
+      setTicketsSold(ticketsCount || 0);
 
-      // Fetch reviews
+      // Fetch recent attendee profiles (last 4)
+      const { data: ticketsData } = await supabase
+        .from('tickets')
+        .select('user_id')
+        .eq('event_id', id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(4);
+      
+      if (ticketsData && ticketsData.length > 0) {
+        const userIds = ticketsData.map(t => t.user_id);
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .in('id', userIds);
+          
+        if (profilesData) {
+          const avatars = profilesData.map(p => p.avatar_url).filter(Boolean);
+          setFollowers(avatars);
+        }
+      }
+
+      // Fetch reviews with profiles
       const { data: reviewsData } = await supabase
         .from('event_reviews')
-        .select('*, profiles!user_id(full_name, avatar_url)')
+        .select('*')
         .eq('event_id', id)
         .order('created_at', { ascending: false });
       
-      if (reviewsData) {
-        setReviews(reviewsData);
+      if (reviewsData && reviewsData.length > 0) {
+        const userIds = reviewsData.map(r => r.user_id);
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+          
+        if (profilesData) {
+          const profileMap = Object.fromEntries(profilesData.map(p => [p.id, p]));
+          const formattedReviews = reviewsData.map(r => ({
+            ...r,
+            profiles: profileMap[r.user_id]
+          }));
+          setReviews(formattedReviews);
+        }
       }
     } catch (e) {
       console.error("Secondary data fetch failed:", e);
@@ -201,6 +273,21 @@ const EventDetailPage = () => {
 
     fetchEvent();
 
+    // Add focus listener to refresh data when returning from checkout or other tabs
+    const handleFocus = () => {
+      console.log('Window focused, refreshing event data...');
+      fetchSecondaryData();
+    };
+    
+    // Listen for custom ticket purchase event
+    const handleTicketPurchase = () => {
+      console.log('Ticket purchase detected, refreshing data...');
+      fetchSecondaryData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('ticket_purchased', handleTicketPurchase);
+
     // Realtime subscription for event updates
     const eventSubscription = supabase
       .channel(`event-updates-${id}`)
@@ -214,10 +301,24 @@ const EventDetailPage = () => {
       )
       .subscribe();
 
-    // Followers realtime subscription disabled - table event_followers doesn't exist
+    // Realtime subscription for ticket sales (to update attendee count)
+    const ticketsSubscription = supabase
+      .channel(`tickets-updates-${id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tickets', filter: `event_id=eq.${id}` },
+        () => {
+          console.log('Tickets updated, refreshing count...');
+          fetchSecondaryData();
+        }
+      )
+      .subscribe();
 
     return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('ticket_purchased', handleTicketPurchase);
       supabase.removeChannel(eventSubscription);
+      supabase.removeChannel(ticketsSubscription);
     };
   }, [id, navigate]);
 
@@ -261,8 +362,42 @@ const EventDetailPage = () => {
   };
 
   const toggleFollow = async () => {
-    // Following functionality disabled - table event_followers doesn't exist
-    toast.info('Funcionalidad de seguir eventos próximamente disponible');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error(t('event_detail.login_to_follow'));
+        return;
+      }
+
+      if (isFollowing && followId) {
+        const { error } = await supabase
+          .from('event_followers')
+          .delete()
+          .eq('id', followId);
+
+        if (error) throw error;
+        setIsFollowing(false);
+        setFollowId(null);
+        toast.success(t('event_detail.unfollow_success'));
+      } else {
+        const { data, error } = await supabase
+          .from('event_followers')
+          .insert({
+            user_id: user.id,
+            event_id: id
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        setIsFollowing(true);
+        setFollowId(data.id);
+        toast.success(t('event_detail.follow_success'));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al actualizar seguimiento');
+    }
   };
 
   const handleJoinEventChat = async () => {
@@ -597,19 +732,59 @@ const EventDetailPage = () => {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex gap-3 pointer-events-auto">
-          <button 
-            className={`p-3 rounded-2xl transition-all shadow-lg border ${
-              isScrolled 
-                ? 'bg-secondary border-border text-foreground hover:bg-secondary/80' 
-                : 'bg-white/20 border-white/20 text-white hover:bg-white/30 backdrop-blur-xl'
-            }`}
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              toast.success('¡Enlace copiado!');
-            }}
-          >
-            <Share2 className="w-5 h-5" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className={`p-3 rounded-2xl transition-all shadow-lg border pointer-events-auto ${
+                  isScrolled 
+                    ? 'bg-secondary border-border text-foreground hover:bg-secondary/80' 
+                    : 'bg-white/20 border-white/20 text-white hover:bg-white/30 backdrop-blur-xl'
+                }`}
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="w-56 rounded-3xl p-2 bg-background border-border shadow-2xl"
+            >
+              <DropdownMenuItem 
+                onClick={() => {
+                  const text = `¡Mira este evento en Eventia: ${event.title}! ${window.location.href}`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                }}
+                className="flex items-center gap-3 p-3 rounded-2xl focus:bg-emerald-500/10 focus:text-emerald-600 cursor-pointer transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <MessageCircle className="w-4 h-4 text-emerald-500" />
+                </div>
+                <span className="text-sm font-bold">WhatsApp</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => {
+                  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+                }}
+                className="flex items-center gap-3 p-3 rounded-2xl focus:bg-blue-500/10 focus:text-blue-600 cursor-pointer transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <Facebook className="w-4 h-4 text-blue-500" />
+                </div>
+                <span className="text-sm font-bold">Facebook</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast.success('¡Enlace copiado!');
+                }}
+                className="flex items-center gap-3 p-3 rounded-2xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Copy className="w-4 h-4 text-primary" />
+                </div>
+                <span className="text-sm font-bold">Copiar enlace</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button 
             onClick={toggleFollow}
             className={`flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all active:scale-95 shadow-lg ${
@@ -759,17 +934,51 @@ const EventDetailPage = () => {
             </div>
           </div>
 
-          {/* Location Full Width */}
-          <div className="flex items-center justify-between p-5 bg-slate-900 rounded-[28px] text-white shadow-xl shadow-slate-900/10">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10 shrink-0"><MapPin className="w-6 h-6 text-emerald-400" /></div>
-              <div className="min-w-0 pr-4">
-                <p className="text-[10px] text-slate-300 font-bold uppercase tracking-wider mb-1">{t('event_detail.location')}</p>
-                <h3 className="text-[13px] font-black text-white truncate">{event.location}</h3>
+          {/* Location Full Width with Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center justify-between p-5 bg-slate-900 rounded-[28px] text-white shadow-xl shadow-slate-900/10 cursor-pointer active:scale-[0.98] transition-all group">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10 shrink-0 group-hover:bg-white/20 transition-colors">
+                    <MapPin className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <div className="min-w-0 pr-4 text-left">
+                    <p className="text-[10px] text-slate-300 font-bold uppercase tracking-wider mb-1">{t('event_detail.location')}</p>
+                    <h3 className="text-[13px] font-black text-white truncate">{event.location}</h3>
+                  </div>
+                </div>
+                <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                  <MapIcon className="w-5 h-5" />
+                </div>
               </div>
-            </div>
-            <button className="w-12 h-12 shrink-0 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 transition-all flex items-center justify-center"><MapIcon className="w-5 h-5" /></button>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="w-56 rounded-3xl p-2 bg-slate-900 border-white/10 text-white shadow-2xl backdrop-blur-xl"
+            >
+              <DropdownMenuItem 
+                onClick={() => {
+                  navigator.clipboard.writeText(event.location);
+                  toast.success('Dirección copiada');
+                }}
+                className="flex items-center gap-3 p-3 rounded-2xl focus:bg-white/10 focus:text-white cursor-pointer transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                  <Copy className="w-4 h-4 text-slate-300" />
+                </div>
+                <span className="text-sm font-bold">Copiar dirección</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`, '_blank')}
+                className="flex items-center gap-3 p-3 rounded-2xl focus:bg-white/10 focus:text-white cursor-pointer transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <ExternalLink className="w-4 h-4 text-emerald-400" />
+                </div>
+                <span className="text-sm font-bold">Ver en el mapa</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Attendees circles */}
           <div className="flex items-center justify-between px-2 pt-2">
@@ -789,9 +998,9 @@ const EventDetailPage = () => {
                   ))
                 )}
               </div>
-              <div>
-                <p className="text-[13px] font-black text-foreground">+{event.attendees_count || 0} {t('event_detail.attendees')}</p>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{t('event_detail.friends_attending')}</p>
+              <div className="flex flex-col">
+                <span className="text-sm font-black text-foreground leading-none">{ticketsSold} {ticketsSold === 1 ? 'persona' : 'personas'}</span>
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Asistentes confirmados</span>
               </div>
             </div>
           </div>
@@ -801,12 +1010,32 @@ const EventDetailPage = () => {
 
         {/* Description */}
         <div className="px-1">
-          <h2 className="text-lg font-black text-foreground tracking-tight mb-3">{t('event_detail.about')}</h2>
-          <p className="text-muted-foreground text-[13px] leading-relaxed font-medium">{event.description}</p>
+          <h2 className="text-lg font-black text-foreground tracking-tight mb-3">Descripción</h2>
+          <div className="relative">
+            <p 
+              ref={descriptionRef}
+              className={`text-muted-foreground text-[13px] leading-relaxed font-medium transition-all duration-300 ${
+                !isDescriptionExpanded ? 'line-clamp-[6]' : ''
+              }`}
+            >
+              {event.description}
+            </p>
+            {(isDescriptionTruncated || isDescriptionExpanded) && (
+              <button 
+                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                className="text-primary text-[11px] font-black uppercase tracking-widest mt-2 hover:underline focus:outline-none"
+              >
+                {isDescriptionExpanded ? 'Ver menos' : 'Ver más'}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Organizer Section */}
-        <div className="flex items-center justify-between p-6 bg-secondary/30 rounded-[40px] border border-border">
+        <div 
+          onClick={() => navigate(`/profile/u/${event.organizer_id}`)}
+          className="flex items-center justify-between p-6 bg-secondary/30 rounded-[40px] border border-border cursor-pointer hover:bg-secondary/50 transition-all active:scale-[0.98]"
+        >
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-card border border-border p-1">
               <img src={organizerProfile?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100'} alt="Organizer" className="w-full h-full object-cover rounded-xl" />
@@ -895,19 +1124,15 @@ const EventDetailPage = () => {
                 const textColorClass = item.icon.props.className?.split(' ').find((c: string) => c.startsWith('text-')) || '';
 
                 return (
-                  <button
+                  <div
                     key={idx}
-                    onClick={() => handleAmenityClick(idx, item.info)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border transition-all active:scale-95 ${selectedAmenity === idx
-                        ? 'bg-foreground border-foreground text-background shadow-md'
-                        : 'bg-card border-border hover:border-primary/50 hover:bg-secondary'
-                      }`}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-border bg-card text-foreground/80"
                   >
-                    <div className={`flex items-center justify-center ${selectedAmenity === idx ? 'text-white' : textColorClass}`}>
+                    <div className={`flex items-center justify-center ${textColorClass}`}>
                       {React.cloneElement(item.icon, { className: 'w-4 h-4' })}
                     </div>
-                    <span className={`text-[11px] font-black uppercase tracking-wider ${selectedAmenity === idx ? 'text-background' : 'text-foreground/80'}`}>{item.label}</span>
-                  </button>
+                    <span className="text-[11px] font-black uppercase tracking-wider">{item.label}</span>
+                  </div>
                 );
               })}
             </div>
@@ -1039,10 +1264,17 @@ const EventDetailPage = () => {
         {/* Floating Bottom Bar */}
         <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/95 backdrop-blur-xl border-t border-border z-50 flex items-center justify-between gap-4">
           <div className="flex flex-col">
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none mb-1">Precio</p>
-            <p className="text-xl font-black text-foreground leading-none">
-              {isFree ? 'Gratis' : `$${event.price}`}
-            </p>
+            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">Entradas</span>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-black text-foreground">
+                {isFree ? 'Gratis' : `$${event.price}`}
+              </span>
+              {event.max_attendees && (
+                <Badge variant="secondary" className="rounded-full bg-primary/10 text-primary border-none font-bold text-[10px] px-3 py-1">
+                  {Math.max(0, event.max_attendees - ticketsSold)} disponibles
+                </Badge>
+              )}
+            </div>
           </div>
           
           <div className="flex gap-2 flex-1 max-w-md">

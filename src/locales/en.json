@@ -43,10 +43,22 @@
     "personalization": "Personalization",
     "appearance_label": "Appearance and Themes",
     "interests": "Interests and Categories",
+    "preferences": "Preferences",
+    "customize": "Customize",
+    "customize_desc": "Interface color and style",
+    "edit_profile": "Edit Profile",
+    "edit_profile_desc": "Photo, name, biography and more",
+    "change_password": "Change Password",
+    "change_password_desc": "Update your access credentials",
+    "membership": "Membership",
+    "help": "Help Center",
+    "help_desc": "Frequently asked questions and support",
+    "logout_desc": "Sign out of your current account",
     "language": "Language",
     "dark_mode": "Dark Mode",
     "support": "Support",
-    "privacy": "Privacy and Terms",
+    "privacy": "Policies and Privacy",
+    "privacy_desc": "Terms, conditions and privacy",
     "help_center": "Help Center",
     "logout": "Logout",
     "version": "Eventia v1.0.0 · Made with ❤️ for the community",
@@ -67,6 +79,26 @@
       "color_selected": "Color {{name}} selected",
       "style_applied": "{{style}} style applied",
       "upgrade_button": "Upgrade to Total Access"
+    },
+    "legal": {
+      "title": "Legal Notice",
+      "terms_title": "Terms and Conditions",
+      "last_update": "Last updated: May 18, 2026",
+      "sections": {
+        "terms": {
+          "title": "1. Terms of Service",
+          "content": "By using the Eventia platform, you agree to comply with our community rules. Account use is personal and non-transferable. We reserve the right to suspend accounts that violate our policies of respect and veracity in event creation."
+        },
+        "cancellation": {
+          "title": "2. Cancellation Policy",
+          "content": "Premium subscriptions can be cancelled at any time from your profile settings. Cancellation will take effect at the end of the current billing period. No proportional refunds are made for months already started."
+        },
+        "privacy": {
+          "title": "3. Data Privacy",
+          "content": "Your data is protected under the GDPR standard. We only share the strictly necessary information with event organizers for managing your tickets and attendance."
+        }
+      },
+      "footer": "For any legal questions, you can contact us at"
     }
   },
   "nav": {

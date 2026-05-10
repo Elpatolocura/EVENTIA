@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useSmartBack } from '@/hooks/useSmartBack';
 import { supabase } from '@/lib/supabase';
-import { ChevronLeft, UserPlus, UserCheck, Search, User } from 'lucide-react';
+import { ChevronLeft, UserPlus, UserCheck, Search, User, Users, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Profile {
   id: string;
@@ -16,6 +17,7 @@ interface Profile {
 }
 
 const FollowsPage = () => {
+  const { t } = useTranslation();
   const { type } = useParams<{ type: 'followers' | 'following' }>();
   const navigate = useNavigate();
   const goBack = useSmartBack('/profile');
@@ -259,13 +261,31 @@ const FollowsPage = () => {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
-              <User className="w-8 h-8 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-500">
+            <div className="relative mb-8">
+              {/* Decorative elements */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-indigo-500/20 to-rose-500/30 rounded-full blur-3xl animate-pulse" />
+              <div className="absolute -top-4 -left-4 w-12 h-12 bg-yellow-400/10 rounded-full blur-xl animate-bounce" style={{ animationDuration: '3s' }} />
+              <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-cyan-400/10 rounded-full blur-xl animate-bounce" style={{ animationDuration: '4s' }} />
+              
+              <div className="relative w-24 h-24 rounded-[32px] bg-gradient-to-br from-primary via-indigo-600 to-violet-700 flex items-center justify-center shadow-[0_20px_50px_rgba(79,70,229,0.3)] rotate-3 transition-transform hover:rotate-0 group">
+                <Users className="w-12 h-12 text-white group-hover:scale-110 transition-transform" />
+                <div className="absolute -top-2 -right-2 bg-white text-primary rounded-full p-2 shadow-lg animate-in zoom-in delay-300">
+                  <Sparkles className="w-4 h-4 fill-primary/20" />
+                </div>
+              </div>
             </div>
-            <h3 className="font-bold text-lg">No hay resultados</h3>
-            <p className="text-sm text-muted-foreground max-w-[200px]">
-              {searchQuery ? 'Prueba con otra búsqueda' : `Aún no tienes ${type === 'followers' ? 'seguidores' : 'personas a las que sigas'}`}
+
+            <h3 className="font-black text-2xl text-foreground tracking-tight mb-3">
+              {searchQuery ? t('common.no_results') : (type === 'followers' ? '¡Tu comunidad te espera!' : 'Encuentra a tu tribu')}
+            </h3>
+            
+            <p className="text-[15px] text-muted-foreground font-medium max-w-[280px] mx-auto leading-relaxed mb-8">
+              {searchQuery 
+                ? 'No pudimos encontrar a nadie con ese nombre. ¡Intenta con otro término!' 
+                : (type === 'followers' 
+                    ? 'Aún no tienes seguidores, pero el contenido increíble que creas pronto atraerá a muchos.' 
+                    : 'Sigue a otros usuarios para estar al tanto de sus eventos y actividades favoritas.')}
             </p>
           </div>
         )}
