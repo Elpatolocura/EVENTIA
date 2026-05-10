@@ -19,7 +19,13 @@ export class NotificationsService {
     }
 
     // Register with Apple / Google to receive push via APNS/FCM
-    await PushNotifications.register();
+    try {
+      // Temporarily disabled to prevent crash due to missing google-services.json
+      // await PushNotifications.register();
+      console.warn('Push registration skipped: google-services.json may be missing');
+    } catch (e) {
+      console.error('Push registration error:', e);
+    }
 
     // On success, we should be able to receive notifications
     PushNotifications.addListener('registration', async (token: Token) => {

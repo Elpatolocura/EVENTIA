@@ -3,6 +3,7 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.eventia.app"
     compileSdk = rootProject.ext.compileSdkVersion
+
     defaultConfig {
         applicationId "com.eventia.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -20,6 +21,19 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "eventia-${variant.name}.apk"
+        }
+    }
+
+    // Fuerza la exclusión de Firebase si no hay google-services.json
+    configurations.all {
+        if (!file('google-services.json').exists()) {
+            exclude group: 'com.google.firebase', module: 'firebase-messaging'
         }
     }
 }

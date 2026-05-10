@@ -5,9 +5,12 @@ const config: CapacitorConfig = {
   appName: 'Eventia',
   webDir: 'dist',
   plugins: {
+    // Se comenta temporalmente para evitar crash por falta de google-services.json
+    /*
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
     },
+    */
   },
 };
 
