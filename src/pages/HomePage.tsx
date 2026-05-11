@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Bell, MapPin, ChevronRight,
+  Search, MapPin, ChevronRight,
   Sparkles, Heart, Calendar, Star, Zap, Clock, LayoutGrid
 } from 'lucide-react';
 import EventFilters, { FilterType } from '@/components/EventFilters';
@@ -327,11 +327,11 @@ const HomePage = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-background pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-background pb-24 lg:pb-8 relative overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-br from-primary/10 via-indigo-500/5 to-pink-500/10 pointer-events-none -z-10 blur-3xl rounded-b-[100px]" />
       <div className="absolute top-[-100px] right-[-50px] w-[300px] h-[300px] bg-primary/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      <header className="px-6 pt-10 pb-6 flex justify-between items-start animate-fade-in-custom">
+      <header className="px-6 lg:px-12 pt-10 pb-6 flex justify-between items-start animate-fade-in-custom">
         <div className="space-y-2">
           <h1 className="text-[28px] font-black tracking-tight text-foreground leading-tight">
             {t('home.greeting')}<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-600">{userNameDisplay}</span> 👋
@@ -356,16 +356,9 @@ const HomePage = () => {
             <ChevronRight className="w-3.5 h-3.5 opacity-50" />
           </button>
         </div>
-        <button
-          onClick={() => navigate('/notifications')}
-          className="p-3.5 rounded-[20px] bg-card shadow-sm border border-border relative hover:shadow-md active:scale-95 transition-all"
-        >
-          <Bell className="w-5 h-5 text-muted-foreground" />
-          <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-rose-500 border-2 border-card rounded-full animate-pulse"></span>
-        </button>
       </header>
 
-      <div className="px-6 mb-8 relative z-10">
+      <div className="px-6 lg:px-12 mb-8 relative z-10">
         <div className="relative group">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors z-10" />
           <Input
@@ -387,7 +380,7 @@ const HomePage = () => {
         userLocation={latitude && longitude ? { latitude, longitude, city } : undefined}
       />
 
-      <div className="px-6 space-y-6">
+      <div className="px-6 lg:px-12 space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
             {loading ? (
@@ -403,13 +396,13 @@ const HomePage = () => {
 
         <div className="space-y-4">
           {loading ? (
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[1, 2, 3].map((i) => (
                 <EventCardSkeleton key={i} />
               ))}
             </div>
           ) : filteredEvents.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredEvents.map((event, idx) => (
                 <div
                   key={event.id}

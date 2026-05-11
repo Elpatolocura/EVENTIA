@@ -103,7 +103,7 @@ const SupportPage = () => {
           <div className="flex items-center gap-4 mb-6">
             <button 
               onClick={goBack} 
-              className="p-2.5 rounded-2xl bg-card shadow-sm border border-border flex items-center justify-center hover:bg-secondary active:scale-90 transition-all"
+              className="lg:hidden p-2.5 rounded-2xl bg-card shadow-sm border border-border flex items-center justify-center hover:bg-secondary active:scale-90 transition-all"
             >
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>

@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS public.notifications (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     message TEXT NOT NULL,
-    type TEXT NOT NULL DEFAULT 'system' CHECK (type IN ('event', 'ticket', 'chat', 'system')),
+    type TEXT NOT NULL DEFAULT 'system' CHECK (type IN ('event', 'ticket', 'chat', 'system', 'follow')),
     read BOOLEAN NOT NULL DEFAULT false,
     action_url TEXT,
     related_id UUID,
@@ -273,9 +273,25 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
+DECLARE
+  organizer_name TEXT;
 BEGIN
   INSERT INTO public.chat_rooms (name, event_id, type)
   VALUES (NEW.title || ' — Chat', NEW.id, 'event');
+
+  SELECT COALESCE(full_name, 'un organizador') INTO organizer_name
+  FROM public.profiles WHERE id = NEW.organizer_id;
+
+  INSERT INTO public.notifications (user_id, title, message, type, related_id, action_url)
+  SELECT
+    f.follower_id,
+    'Nuevo evento de ' || organizer_name,
+    NEW.title || ' — ' || COALESCE(TO_CHAR(NEW.event_date, 'DD/MM/YYYY'), 'Próximamente'),
+    'event',
+    NEW.id,
+    '/event/' || NEW.id
+  FROM public.follows f
+  WHERE f.following_id = NEW.organizer_id;
   RETURN NEW;
 END;
 $$;
@@ -334,10 +350,25 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
+DECLARE
+  follower_name TEXT;
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.profiles SET followers_count = followers_count + 1 WHERE id = NEW.following_id;
     UPDATE public.profiles SET following_count = following_count + 1 WHERE id = NEW.follower_id;
+
+    SELECT COALESCE(full_name, 'Alguien') INTO follower_name
+    FROM public.profiles WHERE id = NEW.follower_id;
+
+    INSERT INTO public.notifications (user_id, title, message, type, related_id, action_url)
+    VALUES (
+      NEW.following_id,
+      'Nuevo seguidor',
+      follower_name || ' ha comenzado a seguirte.',
+      'follow',
+      NEW.follower_id,
+      '/profile/u/' || NEW.follower_id
+    );
   ELSIF TG_OP = 'DELETE' THEN
     UPDATE public.profiles SET followers_count = GREATEST(0, followers_count - 1) WHERE id = OLD.following_id;
     UPDATE public.profiles SET following_count = GREATEST(0, following_count - 1) WHERE id = OLD.follower_id;

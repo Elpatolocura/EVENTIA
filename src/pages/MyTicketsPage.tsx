@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useSmartBack } from '@/hooks/useSmartBack';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, Ticket, Calendar, MapPin, QrCode, MoreVertical, Trash2, Sparkles, Loader2 } from 'lucide-react';
-import { mockTickets, mockEvents } from '@/data/mockData';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -98,7 +96,7 @@ const MyTicketsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center pb-24">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center pb-24 lg:pb-8">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground font-medium">{t('tickets.loading')}</p>
       </div>
@@ -106,11 +104,11 @@ const MyTicketsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 animate-fade-in">
+    <div className="min-h-screen bg-background pb-24 lg:pb-8 animate-fade-in">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={goBack} className="p-2 rounded-full hover:bg-secondary transition-colors">
+          <button onClick={goBack} className="lg:hidden p-2 rounded-full hover:bg-secondary transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold">{t('tickets.title')}</h1>
@@ -133,14 +131,14 @@ const MyTicketsPage = () => {
         </DropdownMenu>
       </div>
 
-      <div className="p-4">
+      <div className="p-4 lg:px-12">
         <Tabs defaultValue="active" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6 bg-secondary/50">
             <TabsTrigger value="active">{t('tickets.tabs.active')}</TabsTrigger>
             <TabsTrigger value="past">{t('tickets.tabs.past')}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="active" className="space-y-4">
+          <TabsContent value="active" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {groupedActiveTickets.length > 0 ? (
               groupedActiveTickets.map((group) => {
                 const firstTicket = group[0];
@@ -148,9 +146,8 @@ const MyTicketsPage = () => {
                 const isGroup = group.length > 1;
 
                 return (
-                  <Card
+                  <button
                     key={events.id}
-                    className="overflow-hidden border-none shadow-md bg-card group cursor-pointer hover:shadow-lg transition-all active:scale-[0.98]"
                     onClick={() => {
                       if (isGroup) {
                         setSelectedEventGroup(group);
@@ -158,51 +155,48 @@ const MyTicketsPage = () => {
                         navigate(`/ticket/${firstTicket.id}`);
                       }
                     }}
+                    className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm text-left w-full transition-all hover:shadow-md active:scale-[0.98] group"
                   >
-                    <div className="flex">
-                      <div className="w-24 bg-primary/10 flex flex-col items-center justify-center p-2 border-r border-dashed border-border relative">
-                        {/* Notch effects for ticket look */}
-                        <div className="absolute -top-2 -right-2 w-4 h-4 bg-background rounded-full"></div>
-                        <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-background rounded-full"></div>
-
-                        <span className="text-2xl mb-1">{events.emoji}</span>
-                        <QrCode className="w-8 h-8 text-primary/40" />
+                    <div className="h-36 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary relative overflow-hidden">
+                      {events.image_url ? (
+                        <img src={events.image_url} alt={events.title} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Ticket className="w-16 h-16 text-primary/20" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      <div className="absolute top-3 left-3">
+                        <span className="bg-foreground/90 text-background px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-sm">
+                          {isGroup ? `${group.length} entradas` : `x${firstTicket.quantity}`}
+                        </span>
                       </div>
-
-                      <CardContent className="flex-1 p-4 space-y-2">
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-bold text-sm line-clamp-1">{events.title}</h3>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isGroup ? 'bg-amber-500 text-white' : 'bg-primary/10 text-primary'}`}>
-                            {isGroup ? `${group.length} entradas` : `x${firstTicket.quantity}`}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            <span className="text-[10px]">{new Date(events.event_date || events.date).toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <MapPin className="w-3 h-3" />
-                            <span className="text-[10px] line-clamp-1">{events.location}</span>
-                          </div>
-                        </div>
-
-                        <div className="pt-2 flex justify-between items-center">
-                          <p className="text-[9px] text-muted-foreground italic">
-                            {isGroup ? 'Entradas agrupadas' : `${t('tickets.purchased_on')} ${new Date(firstTicket.purchase_date).toLocaleDateString()}`}
-                          </p>
-                          <button className="text-[10px] font-bold text-primary group-hover:underline">
-                            {isGroup ? 'Ver todas' : t('tickets.view_qr')}
-                          </button>
-                        </div>
-                      </CardContent>
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <h3 className="font-bold text-sm text-white truncate drop-shadow-lg">{events.title}</h3>
+                      </div>
                     </div>
-                  </Card>
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <Calendar className="w-3.5 h-3.5 shrink-0" />
+                        <span className="text-xs">{new Date(events.event_date || events.date).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                        <span className="text-xs truncate">{events.location}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-border">
+                        <span className="text-[10px] text-muted-foreground">{new Date(firstTicket.purchase_date).toLocaleDateString()}</span>
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-primary">
+                          <QrCode className="w-3.5 h-3.5" />
+                          {isGroup ? 'Ver todas' : 'Ver QR'}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
                 );
               })
             ) : (
-              <div className="flex flex-col items-center justify-center py-24 px-10 text-center animate-in fade-in zoom-in-95 duration-500">
+              <div className="flex flex-col items-center justify-center py-24 px-10 text-center animate-in fade-in zoom-in-95 duration-500 col-span-full">
                 <div className="relative mb-8">
                   <div className="absolute inset-0 bg-gradient-to-tr from-violet-400 via-fuchsia-500 to-rose-500 rounded-[32px] blur-2xl opacity-30 animate-pulse"></div>
                   <div className="relative w-28 h-28 bg-gradient-to-br from-violet-500 via-fuchsia-600 to-rose-500 rounded-[35px] shadow-2xl shadow-fuchsia-500/40 flex items-center justify-center rotate-6 hover:rotate-0 transition-transform duration-700 group cursor-pointer">
@@ -232,36 +226,37 @@ const MyTicketsPage = () => {
 
           <TabsContent value="past" className="mt-6">
             {groupedPastTickets.length > 0 ? (
-              <div className="space-y-4 opacity-70 grayscale-[0.3]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {groupedPastTickets.map((group) => {
                   const firstTicket = group[0];
                   const { events } = firstTicket;
                   const isGroup = group.length > 1;
 
                   return (
-                    <Card 
-                      key={events.id} 
-                      className="overflow-hidden border-border shadow-sm bg-secondary/30 cursor-pointer"
+                    <button
+                      key={events.id}
                       onClick={() => isGroup ? setSelectedEventGroup(group) : navigate(`/ticket/${firstTicket.id}`)}
+                      className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm text-left w-full transition-all hover:shadow-md opacity-70 grayscale-[0.4] group"
                     >
-                      <CardContent className="p-0 flex h-32">
-                        <div className="w-24 bg-secondary/50 flex flex-col items-center justify-center gap-2 relative">
-                          <span className="text-xl opacity-50">{events.emoji}</span>
-                          <div className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">
-                            {isGroup ? `${group.length} Entradas` : t('tickets.expired')}
+                      <div className="h-28 bg-muted relative overflow-hidden">
+                        {events.image_url ? (
+                          <img src={events.image_url} alt={events.title} className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Ticket className="w-10 h-10 text-muted-foreground/20" />
                           </div>
+                        )}
+                        <div className="absolute top-2 left-2">
+                          <span className="bg-muted-foreground/80 text-background px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider">
+                            {t('tickets.expired') || 'Finalizado'}
+                          </span>
                         </div>
-                        <div className="flex-1 p-4 flex flex-col justify-between">
-                          <div>
-                            <h3 className="font-bold text-sm text-foreground/60 line-clamp-1">{events.title}</h3>
-                            <p className="text-[10px] text-muted-foreground/50">{new Date(events.event_date || events.date).toLocaleDateString()}</p>
-                          </div>
-                          <div className="text-[9px] text-muted-foreground/40 italic">
-                            {isGroup ? 'Múltiples tickets' : `ID: ${firstTicket.id.slice(0, 8)}`}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                      <div className="p-3 space-y-1">
+                        <h3 className="font-bold text-xs text-foreground/70 truncate">{events.title}</h3>
+                        <p className="text-[10px] text-muted-foreground/50">{new Date(events.event_date || events.date).toLocaleDateString()}</p>
+                      </div>
+                    </button>
                   );
                 })}
               </div>

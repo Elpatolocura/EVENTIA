@@ -180,7 +180,7 @@ const PremiumPage = () => {
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">{t('premium.benefits_included')}</p>
                   <div className="grid gap-3.5">
                     {plan.features.map((feature: any, idx: number) => (
-                      <div key={idx} className="flex items-start gap-4 animate-slide-up" style={{ animationDelay: `${idx * 40}ms` }}>
+                      <div key={feature.text} className="flex items-start gap-4 animate-slide-up" style={{ animationDelay: `${idx * 40}ms` }}>
                         <div className={`p-1 rounded-full mt-0.5 ${plan.isPremium ? 'bg-indigo-500/20' : 'bg-white/10'}`}>
                           <feature.icon className={`w-3 h-3 ${plan.isPremium ? 'text-indigo-400' : 'text-zinc-500'}`} />
                         </div>

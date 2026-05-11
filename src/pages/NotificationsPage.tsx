@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSmartBack } from '@/hooks/useSmartBack';
-import { ArrowLeft, Bell, MessageSquare, Ticket, Star, Info, Sparkles, MoreVertical, CheckCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, Bell, MessageSquare, Ticket, Star, Info, Sparkles, MoreVertical, CheckCheck, Trash2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -62,6 +62,36 @@ const NotificationsPage = () => {
 
   React.useEffect(() => {
     fetchNotifications();
+
+    let channel: any = null;
+
+    const setupChannel = async () => {
+      let user = null;
+      try {
+        const result = await supabase.auth.getUser();
+        user = result.data?.user;
+      } catch { /* ignore */ }
+
+      if (user) {
+        channel = supabase
+          .channel(`notif-page-${user.id}`)
+          .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          }, () => {
+            fetchNotifications();
+          })
+          .subscribe();
+      }
+    };
+
+    setupChannel();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   const markAllAsRead = async () => {
@@ -128,7 +158,7 @@ const NotificationsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center pb-24">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center pb-24 lg:pb-8">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground font-medium text-sm">Cargando notificaciones...</p>
       </div>
@@ -140,16 +170,27 @@ const NotificationsPage = () => {
       case 'event': return <Star className="w-4 h-4 text-amber-500" />;
       case 'ticket': return <Ticket className="w-4 h-4 text-green-500" />;
       case 'chat': return <MessageSquare className="w-4 h-4 text-blue-500" />;
+      case 'follow': return <UserPlus className="w-4 h-4 text-purple-500" />;
       default: return <Info className="w-4 h-4 text-primary" />;
     }
   };
 
+  const handleNotificationClick = async (notif: any) => {
+    if (!notif.read) {
+      await supabase.from('notifications').update({ read: true }).eq('id', notif.id);
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
+    }
+    if (notif.action_url) {
+      navigate(notif.action_url);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background pb-24 animate-fade-in">
+    <div className="min-h-screen bg-background pb-24 lg:pb-8 animate-fade-in">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={goBack} className="p-2 rounded-full hover:bg-secondary transition-colors">
+          <button onClick={goBack} className="lg:hidden p-2 rounded-full hover:bg-secondary transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold">Notificaciones</h1>
@@ -184,7 +225,8 @@ const NotificationsPage = () => {
           notifications.map((notif) => (
             <div
               key={notif.id}
-              className={`p-5 flex gap-4 transition-colors hover:bg-secondary/30 ${!notif.read ? 'bg-primary/5' : ''}`}
+              onClick={() => handleNotificationClick(notif)}
+              className={`p-5 flex gap-4 transition-colors hover:bg-secondary/30 cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
             >
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${!notif.read ? 'bg-background shadow-sm border border-border/50' : 'bg-secondary'
                 }`}>

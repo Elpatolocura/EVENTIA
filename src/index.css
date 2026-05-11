@@ -88,6 +88,15 @@
   position: relative;
 }
 
+@media (min-width: 1024px) {
+  .app-container {
+    max-width: none;
+    margin: 0;
+    margin-left: 256px;
+    min-height: 100dvh;
+  }
+}
+
 /* Hide scrollbar for mobile feel */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

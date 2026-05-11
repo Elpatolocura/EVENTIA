@@ -13,7 +13,7 @@ const LegalPage = () => {
     <div className="min-h-screen bg-background pb-24 animate-fade-in">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md p-4 flex items-center gap-4 border-b border-border">
-        <button onClick={goBack} className="p-2 rounded-full hover:bg-secondary transition-all">
+        <button onClick={goBack} className="lg:hidden p-2 rounded-full hover:bg-secondary transition-all">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-bold text-foreground">{t('settings.legal.title')}</h1>

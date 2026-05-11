@@ -103,7 +103,7 @@ const CheckoutPage = () => {
     <div className="min-h-screen bg-background pb-32 animate-fade-in">
       {/* Header */}
       <div className="px-6 pt-12 pb-6 flex items-center gap-4 bg-background border-b border-border">
-        <button onClick={goBack} className="p-2 rounded-xl bg-secondary text-foreground hover:bg-secondary/80 transition-all flex items-center justify-center">
+        <button onClick={goBack} className="lg:hidden p-2 rounded-xl bg-secondary text-foreground hover:bg-secondary/80 transition-all flex items-center justify-center">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-black text-foreground tracking-tight">{t('checkout.title')}</h1>
@@ -184,8 +184,8 @@ const CheckoutPage = () => {
         <div className="space-y-4">
           <h3 className="text-sm font-black text-foreground uppercase tracking-widest px-1">{t('checkout.payment_method')}</h3>
           <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
-            {['Apple Pay', 'Google Pay', 'Visa •••• 4242'].map((method, idx) => (
-              <button key={idx} className="flex items-center gap-3 px-6 py-4 bg-card rounded-2xl border border-border whitespace-nowrap font-bold text-foreground/60 hover:border-primary transition-all">
+            {['Apple Pay', 'Google Pay', 'Visa •••• 4242'].map((method) => (
+              <button key={method} className="flex items-center gap-3 px-6 py-4 bg-card rounded-2xl border border-border whitespace-nowrap font-bold text-foreground/60 hover:border-primary transition-all">
                 <Wallet className="w-4 h-4 text-muted-foreground" />
                 {method}
               </button>

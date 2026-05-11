@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: './',
+  base: '/', 
 
   server: {
     port: 8080,
@@ -27,6 +27,37 @@ export default defineConfig(({ mode }) => ({
     ],
   },
   build: {
-    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            // Large UI libraries in separate chunks
+            if (id.includes('@radix-ui') || id.includes('lucide-react')) {
+              return 'ui-vendor';
+            }
+            // React and core libraries
+            if (id.includes('react') || id.includes('@tanstack/react-query')) {
+              return 'react-vendor';
+            }
+            // Framer Motion (heavy animation library)
+            if (id.includes('framer-motion')) {
+              return 'animation-vendor';
+            }
+            // Supabase
+            if (id.includes('supabase')) {
+              return 'supabase-vendor';
+            }
+            // Other node_modules
+            return 'vendor';
+          }
+          // Large components (not pages — pages are lazy-loaded)
+          if (id.includes('src/components/EventCard') || id.includes('src/components/BottomNav')) {
+            return 'core-components';
+          }
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500, // Lower threshold to catch issues earlier
   },
 }));

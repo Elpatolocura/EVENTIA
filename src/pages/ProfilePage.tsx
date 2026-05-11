@@ -183,7 +183,7 @@ const ProfilePage = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <div className="h-48 bg-secondary rounded-b-[40px] animate-pulse"></div>
-        <div className="flex flex-col items-center -mt-14 px-6">
+          <div className="flex flex-col items-center -mt-14 px-6 lg:px-12">
           <div className="w-28 h-28 rounded-full border-4 border-background bg-muted animate-pulse mb-4"></div>
           <div className="w-48 h-8 bg-muted rounded-lg animate-pulse mb-2"></div>
           <div className="w-32 h-4 bg-muted rounded animate-pulse mb-6"></div>
@@ -195,7 +195,7 @@ const ProfilePage = () => {
 
   if (!user && !id) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center animate-fade-in pb-24 bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center animate-fade-in pb-24 lg:pb-8 bg-background max-w-4xl mx-auto">
         <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mb-6">
           <User className="w-10 h-10 text-muted-foreground" />
         </div>
@@ -209,23 +209,23 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 animate-fade-in font-sans relative overflow-x-hidden">
+    <div className="min-h-screen bg-background pb-24 lg:pb-8 animate-fade-in font-sans relative overflow-x-hidden max-w-4xl mx-auto">
       <div className="absolute top-0 left-0 right-0 h-56 bg-secondary rounded-b-[48px] -z-10" />
-      <div className="flex justify-between items-center px-6 pt-12 pb-4 relative z-10">
-        <button onClick={goBack} className="p-2 -ml-2 text-foreground hover:bg-black/5 rounded-full transition-colors active:scale-95">
+      <div className="flex justify-between items-center px-6 lg:px-12 pt-12 pb-4 relative z-10">
+        <button onClick={goBack} className="lg:hidden p-2 -ml-2 text-foreground hover:bg-black/5 rounded-full transition-colors active:scale-95">
           <ChevronLeft className="w-6 h-6" />
         </button>
         <h1 className="text-xl font-bold text-foreground tracking-tight">{t('profile.profile')}</h1>
         {isOwnProfile ? (
-          <button onClick={() => navigate('/settings')} className="p-2 -mr-2 text-foreground hover:bg-black/5 rounded-full transition-colors active:scale-95">
+          <button onClick={() => navigate('/settings')} className="lg:hidden p-2 -mr-2 text-foreground hover:bg-black/5 rounded-full transition-colors active:scale-95">
             <Settings className="w-6 h-6" />
           </button>
         ) : <div className="w-10"></div>}
       </div>
 
-      <div className="flex flex-col items-center px-6 relative z-10">
+      <div className="flex flex-col items-center px-6 lg:px-12 relative z-10">
         <div className="w-[104px] h-[104px] rounded-full border-4 border-background shadow-sm overflow-hidden mb-3 bg-muted ring-1 ring-black/5">
-          <img src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.full_name || 'User'}&background=random`} alt="Avatar" className="w-full h-full object-cover" />
+          <img src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.full_name || 'User'}&background=random`} loading="lazy" alt="Avatar" className="w-full h-full object-cover" />
         </div>
         
         <div className="flex items-center gap-2 mb-1">
@@ -290,7 +290,7 @@ const ProfilePage = () => {
       </div>
 
       {isPremium && userCreatedEvents.length > 0 && (
-        <div className="px-6 mb-8">
+        <div className="px-6 lg:px-12 mb-8">
           <h3 className="font-bold text-[13px] tracking-[0.05em] text-foreground flex items-center gap-2 mb-4">
             <Crown className="w-3.5 h-3.5 text-amber-500" />
             {t('profile.created_events')}
@@ -299,7 +299,7 @@ const ProfilePage = () => {
             {userCreatedEvents.map((evt, i) => (
               <div key={evt.id || i} onClick={() => navigate(`/event/${evt.id}`)} className="bg-card rounded-[20px] overflow-hidden border border-border shadow-[0_4px_20px_rgb(0,0,0,0.03)] cursor-pointer hover:shadow-lg transition-all active:scale-[0.98] group">
                 <div className="h-[110px] bg-gray-100 overflow-hidden">
-                  <img src={evt.image_url || evt.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=500&q=80'} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img src={evt.image_url || evt.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=500&q=80'} loading="lazy" alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
                 <div className="p-3.5">
                   <h4 className="font-bold text-[13px] text-foreground line-clamp-1 mb-1">{evt.title}</h4>
@@ -312,7 +312,7 @@ const ProfilePage = () => {
       )}
 
       {attendedEvents.length > 0 && (
-        <div className="px-6 mb-12">
+        <div className="px-6 lg:px-12 mb-12">
           <h3 className="font-bold text-[13px] tracking-[0.05em] text-foreground flex items-center gap-2 mb-4">
             <Ticket className="w-3.5 h-3.5 text-primary" />
             {t('profile.attended_events')}
@@ -321,7 +321,7 @@ const ProfilePage = () => {
             {attendedEvents.map((evt, i) => (
               <div key={evt.id || i} onClick={() => navigate(`/event/${evt.id}`)} className="bg-card rounded-[20px] overflow-hidden border border-border shadow-[0_4px_20px_rgb(0,0,0,0.03)] cursor-pointer hover:shadow-lg transition-all active:scale-[0.98] group">
                 <div className="h-[110px] bg-gray-100 overflow-hidden">
-                  <img src={evt.image_url || evt.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=500&q=80'} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img src={evt.image_url || evt.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=500&q=80'} loading="lazy" alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
                 <div className="p-3.5">
                   <h4 className="font-bold text-[13px] text-foreground line-clamp-1 mb-1">{evt.title}</h4>

@@ -131,7 +131,7 @@ const SubscriptionCheckoutPage = () => {
     <div className="min-h-screen bg-background pb-32 animate-fade-in font-sans">
       {/* Header */}
       <div className="px-6 pt-12 pb-6 flex items-center justify-between bg-background border-b border-border">
-        <button onClick={goBack} className="p-2 rounded-xl bg-secondary text-foreground hover:bg-secondary/80 transition-all flex items-center justify-center">
+        <button onClick={goBack} className="lg:hidden p-2 rounded-xl bg-secondary text-foreground hover:bg-secondary/80 transition-all flex items-center justify-center">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-black text-foreground tracking-tight">{t('subscription.title')}</h1>
@@ -154,8 +154,8 @@ const SubscriptionCheckoutPage = () => {
             </div>
 
             <div className="space-y-2 mb-6">
-              {plan.features.map((feat: string, idx: number) => (
-                <div key={idx} className="flex items-center gap-2">
+              {plan.features.map((feat: string) => (
+                <div key={feat} className="flex items-center gap-2">
                   <div className="bg-white/20 rounded-full p-1">
                     <Check className="w-3 h-3 text-white" />
                   </div>

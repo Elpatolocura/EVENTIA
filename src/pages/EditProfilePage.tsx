@@ -223,7 +223,7 @@ const EditProfilePage = () => {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={goBack} className="p-2 rounded-full hover:bg-secondary transition-colors">
+          <button onClick={goBack} className="lg:hidden p-2 rounded-full hover:bg-secondary transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold">Información Personal</h1>
@@ -254,7 +254,7 @@ const EditProfilePage = () => {
             className="relative w-28 h-28 rounded-full bg-secondary border-4 border-background shadow-lg flex items-center justify-center overflow-hidden cursor-pointer group"
           >
             {formData.avatar_url ? (
-              <img src={formData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              <img src={formData.avatar_url} loading="lazy" alt="Avatar" className="w-full h-full object-cover" />
             ) : (
               <User className="w-12 h-12 text-muted-foreground" />
             )}

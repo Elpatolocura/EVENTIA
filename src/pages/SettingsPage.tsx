@@ -6,6 +6,23 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { applyTheme, applyColorMode, ACCENT_COLORS, type AccentColor, type InterfaceStyle } from '@/lib/theme';
@@ -24,6 +41,7 @@ const SettingsPage = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showPasswordText, setShowPasswordText] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [membership, setMembership] = useState<string>('Basic');
@@ -77,17 +95,23 @@ const SettingsPage = () => {
     applyColorMode(dark ? 'dark' : 'light');
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutConfirm(false);
     await authSignOut();
     navigate('/auth');
     toast.success(t('settings.logged_out') || 'Sesión cerrada');
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-24 lg:pb-8">
+      <div className="max-w-2xl mx-auto">
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="flex items-center gap-4 px-4 py-3">
-          <button onClick={goBack} className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors">
+          <button onClick={goBack} className="lg:hidden p-2 -ml-2 rounded-full hover:bg-muted transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-foreground">{t('settings.title') || 'Ajustes'}</h1>
@@ -220,7 +244,115 @@ const SettingsPage = () => {
         </div>
       </div>
 
-      {/* Modals for Language and Password would be here (omitted for brevity in this rewrite, but should be preserved if needed) */}
+      </div>
+
+      {/* Language Modal */}
+      <Dialog open={showLanguage} onOpenChange={setShowLanguage}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('settings.select_language')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            {[
+              { code: 'es', label: 'Español' },
+              { code: 'en', label: 'English' },
+            ].map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => {
+                  i18n.changeLanguage(lang.code);
+                  setLanguage(lang.label);
+                  setShowLanguage(false);
+                  toast.success(t('settings.language_changed', { lang: lang.label }));
+                }}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-muted transition-colors"
+              >
+                <span className="font-medium text-foreground">{lang.label}</span>
+                {language === lang.label && <Check className="w-5 h-5 text-primary" />}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Modal */}
+      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('settings.change_password')}</DialogTitle>
+            <DialogDescription>{t('settings.change_password_desc')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="relative">
+              <input
+                type={showPasswordText ? 'text' : 'password'}
+                placeholder={t('settings.new_password') || 'Nueva contraseña'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl bg-muted border border-border text-foreground text-sm outline-none focus:ring-2 focus:ring-primary pr-12"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordText(!showPasswordText)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                {showPasswordText ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type={showPasswordText ? 'text' : 'password'}
+                placeholder={t('settings.confirm_password') || 'Confirmar contraseña'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl bg-muted border border-border text-foreground text-sm outline-none focus:ring-2 focus:ring-primary pr-12"
+              />
+            </div>
+            <Button
+              className="w-full h-12 rounded-xl font-bold"
+              onClick={async () => {
+                if (newPassword.length < 6) {
+                  toast.error(t('settings.password_length_error') || 'La contraseña debe tener al menos 6 caracteres');
+                  return;
+                }
+                if (newPassword !== confirmPassword) {
+                  toast.error(t('settings.password_mismatch') || 'Las contraseñas no coinciden');
+                  return;
+                }
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                if (error) {
+                  toast.error(error.message);
+                } else {
+                  toast.success(t('settings.password_updated'));
+                  setShowPasswordModal(false);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }
+              }}
+            >
+              {t('common.save') || 'Guardar'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Logout Confirmation */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('settings.confirm_logout_title') || '¿Cerrar sesión?'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('settings.confirm_logout_desc') || '¿Estás seguro de que deseas cerrar sesión? Deberás iniciar sesión nuevamente para acceder a tu cuenta.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel') || 'Cancelar'}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLogout} className="bg-red-600 hover:bg-red-700 text-white">
+              {t('settings.logout') || 'Cerrar sesión'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

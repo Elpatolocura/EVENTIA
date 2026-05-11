@@ -12,6 +12,7 @@ const WelcomePage = () => {
       <div className="absolute inset-0 z-0">
         <img 
           src="/eventia_welcome_bg_1776577135770.png" 
+          loading="lazy"
           alt="Welcome" 
           className="h-full w-full object-cover opacity-60 scale-105 animate-pulse-slow"
         />

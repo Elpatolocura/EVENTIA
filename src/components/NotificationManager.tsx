@@ -8,6 +8,30 @@ import { App as CapacitorApp, AppUrlOpenEvent } from '@capacitor/app';
 import type { Channel } from '@supabase/supabase-js';
 import { useAuth } from '@/contexts/AuthContext';
 
+const playNotificationSound = () => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+    oscillator.frequency.setValueAtTime(1200, ctx.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(1000, ctx.currentTime + 0.2);
+
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.4);
+  } catch (e) {
+    // Audio context not supported
+  }
+};
+
 const NotificationManager = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -42,8 +66,10 @@ const NotificationManager = () => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            const newNotif = payload.new;
-            
+            const newNotif = payload.new as any;
+
+            playNotificationSound();
+
             // Show real-time toast
             toast(newNotif.title, {
               description: newNotif.message,

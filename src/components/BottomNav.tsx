@@ -35,7 +35,7 @@ const BottomNav = () => {
   if (shouldHide) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-t border-border px-6 py-3 pb-8">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-t border-border px-6 py-3 pb-8 lg:hidden">
       <div className="max-w-xl mx-auto flex justify-between items-center">
         <Link 
           to="/" 

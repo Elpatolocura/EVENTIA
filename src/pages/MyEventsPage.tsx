@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSmartBack } from '@/hooks/useSmartBack';
-import { ArrowLeft, Plus, Users, Calendar, MoreVertical, Edit2, Trash2, ExternalLink, Rocket, Lock, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Calendar, MoreVertical, Edit2, Trash2, ExternalLink, Rocket, Lock, Loader2, MapPin, Star } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import {
@@ -60,7 +60,7 @@ const MyEventsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center pb-24">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center pb-24 lg:pb-8">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground font-medium text-sm">Cargando tus eventos...</p>
       </div>
@@ -68,11 +68,11 @@ const MyEventsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 animate-fade-in">
+    <div className="min-h-screen bg-background pb-24 lg:pb-8 animate-fade-in">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={goBack} className="p-2 rounded-full hover:bg-secondary transition-colors">
+          <button onClick={goBack} className="lg:hidden p-2 rounded-full hover:bg-secondary transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold">Mis Eventos</h1>
@@ -84,27 +84,37 @@ const MyEventsPage = () => {
         )}
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 lg:px-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {myEvents.length > 0 ? (
-          myEvents.map((event) => (
-            <div key={event.id} className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm flex group h-32">
-              <div className="w-32 h-full bg-secondary overflow-hidden shrink-0 border-r border-border">
-                {event.image_url ? (
-                  <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-4xl">
-                    {event.emoji || '📅'}
+          myEvents.map((event) => {
+            const priceDisplay = event.price && event.price !== '0' && event.price !== 'Gratis' ? `$${event.price}` : 'Gratis';
+            return (
+              <div key={event.id} className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm transition-shadow hover:shadow-md relative group">
+                <button
+                  onClick={() => navigate(`/event/${event.id}`)}
+                  className="w-full text-left"
+                >
+                  <div className="h-40 bg-secondary flex items-center justify-center text-5xl relative overflow-hidden">
+                    {event.image_url ? (
+                      <img src={event.image_url} loading="lazy" alt={event.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-foreground/80 to-foreground/40 text-white">
+                        {event.emoji || '📅'}
+                      </div>
+                    )}
+                    <div className="absolute top-4 left-4">
+                      <div className="bg-background/90 backdrop-blur-sm text-foreground px-3 py-1 rounded-full font-black text-[10px] uppercase tracking-wider shadow-sm">
+                        {event.category}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
+                </button>
 
-              <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
-                <div className="flex justify-between items-start gap-2">
-                  <h3 className="font-bold text-sm truncate">{event.title}</h3>
+                <div className="absolute top-3 right-3 z-10">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="p-1 rounded-md hover:bg-secondary transition-colors shrink-0">
-                        <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                      <button className="w-9 h-9 rounded-xl bg-background/80 backdrop-blur-sm border border-border flex items-center justify-center hover:bg-background transition-all">
+                        <MoreVertical className="w-4 h-4 text-foreground" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40 rounded-xl">
@@ -112,7 +122,7 @@ const MyEventsPage = () => {
                         <ExternalLink className="w-3.5 h-3.5" /> Ver Página
                       </DropdownMenuItem>
                       <DropdownMenuItem className="gap-2 text-xs font-medium">
-                        <Edit2 className="w-3.5 h-3.5" /> Editar Evento
+                        <Edit2 className="w-3.5 h-3.5" /> Editar
                       </DropdownMenuItem>
                       <DropdownMenuItem className="gap-2 text-xs font-medium text-destructive">
                         <Trash2 className="w-3.5 h-3.5" /> Eliminar
@@ -121,33 +131,54 @@ const MyEventsPage = () => {
                   </DropdownMenu>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-medium">{event.event_date}</span>
+                <div className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground text-base leading-tight truncate">{event.title}</h3>
+                      <p className="text-muted-foreground text-sm mt-1 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 shrink-0" />
+                        <span>{event.event_date}</span>
+                      </p>
+                      {event.location && (
+                        <p className="text-muted-foreground text-sm flex items-center gap-1.5 mt-0.5">
+                          <MapPin className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{event.location.split(',')[0]}</span>
+                        </p>
+                      )}
+                    </div>
+                    <div className="bg-accent/10 text-accent px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0 ml-2">
+                      {priceDisplay}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Users className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-medium">{event.attendees_count || 0} asistirán</span>
+                  <div className="flex justify-between items-center mt-3">
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">{event.attendees_count || 0} asistentes</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                      <span className="text-[11px] font-bold text-muted-foreground">5.0</span>
+                    </div>
                   </div>
-                </div>
-
-                <div className="pt-1 flex gap-2 items-center">
-                  <div className="h-1 flex-1 bg-secondary rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary"
-                      style={{ width: `${Math.min(100, ((event.attendees_count || 0) / (event.max_attendees || 100)) * 100)}%` }}
-                    ></div>
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <div className="flex gap-2 items-center">
+                      <div className="h-1.5 flex-1 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full"
+                          style={{ width: `${Math.min(100, ((event.attendees_count || 0) / (event.max_attendees || 100)) * 100)}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-[10px] font-bold text-primary shrink-0">
+                        {Math.round(((event.attendees_count || 0) / (event.max_attendees || 100)) * 100)}% lleno
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-[9px] font-bold text-primary">
-                    {Math.round(((event.attendees_count || 0) / (event.max_attendees || 100)) * 100)}%
-                  </span>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : isAllAccess ? (
-          <div className="text-center py-20 px-6 animate-in fade-in zoom-in-95 duration-500">
+          <div className="text-center py-20 px-6 animate-in fade-in zoom-in-95 duration-500 col-span-full">
             <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <Plus className="w-10 h-10 text-primary" />
             </div>
@@ -163,7 +194,7 @@ const MyEventsPage = () => {
             </Button>
           </div>
         ) : (
-          <div className="text-center py-20 px-6 animate-in fade-in zoom-in-95 duration-500">
+          <div className="text-center py-20 px-6 animate-in fade-in zoom-in-95 duration-500 col-span-full">
             <div className="relative w-28 h-28 mx-auto mb-6">
               <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 rounded-[32px] rotate-6 opacity-20 animate-pulse"></div>
               <div className="absolute inset-0 bg-gradient-to-bl from-indigo-500 via-purple-500 to-pink-500 rounded-[32px] -rotate-3 flex items-center justify-center shadow-2xl shadow-purple-500/30">

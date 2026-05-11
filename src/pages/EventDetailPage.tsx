@@ -716,14 +716,14 @@ const EventDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 animate-fade-in">
+    <div className="min-h-screen bg-background pb-24 lg:pb-8 animate-fade-in">
       {/* Sticky Top Navbar */}
-      <div className={`fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center transition-all duration-300 pointer-events-none ${
+      <div className={`fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-4 flex justify-between items-center transition-all duration-300 pointer-events-none ${
         isScrolled ? 'bg-background/90 backdrop-blur-xl border-b border-border shadow-sm py-3' : 'bg-transparent pt-10'
       }`}>
         <button 
           onClick={goBack} 
-          className={`p-3 rounded-2xl transition-all pointer-events-auto shadow-lg border ${
+          className={`lg:hidden p-3 rounded-2xl transition-all pointer-events-auto shadow-lg border ${
             isScrolled 
               ? 'bg-secondary border-border text-foreground hover:bg-secondary/80' 
               : 'bg-white/20 border-white/20 text-white hover:bg-white/30 backdrop-blur-xl'
@@ -811,11 +811,12 @@ const EventDetailPage = () => {
 
       {/* Hero Image Section */}
       <div 
-        className="relative h-[400px] cursor-pointer group"
+        className="relative h-[400px] lg:h-[420px] cursor-pointer group lg:mx-12 lg:mt-4 lg:rounded-3xl lg:overflow-hidden"
         onClick={() => setIsGalleryOpen(true)}
       >
         <img 
           src={event.image_url || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800'} 
+          loading="lazy"
           alt={event.title} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
         />
@@ -835,7 +836,7 @@ const EventDetailPage = () => {
               </Badge>
             )}
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tight leading-tight">{event.title}</h1>
+          <h1 className="text-3xl lg:text-5xl font-black text-white tracking-tight leading-tight">{event.title}</h1>
         </div>
         
         {/* Photo Count Indicator */}
@@ -854,6 +855,7 @@ const EventDetailPage = () => {
           <div className="relative w-full aspect-video sm:aspect-[16/9] bg-black group/gallery">
             <img 
               src={eventImages[currentImageIndex]} 
+              loading="lazy"
               alt={`Foto ${currentImageIndex + 1}`} 
               className="w-full h-full object-contain"
             />
@@ -894,7 +896,7 @@ const EventDetailPage = () => {
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
               {eventImages.map((_, idx) => (
                 <button 
-                  key={idx}
+                  key={`img-${idx}`}
                   onClick={() => setCurrentImageIndex(idx)}
                   className={`w-1.5 h-1.5 rounded-full transition-all ${idx === currentImageIndex ? 'bg-primary w-4' : 'bg-white/40'}`}
                 />
@@ -911,138 +913,215 @@ const EventDetailPage = () => {
         </DialogContent>
       </Dialog>
 
-      <div className="px-5 -mt-6 relative z-10 bg-background rounded-t-[40px] pt-8 space-y-8">
+      <div className="px-5 lg:px-12 -mt-6 lg:-mt-16 relative z-10 bg-background rounded-t-[40px] lg:rounded-t-[48px] pt-8">
+        <div className="max-w-7xl mx-auto lg:grid lg:grid-cols-3 lg:gap-10">
 
-        {/* Quick Info Grid */}
-        <div className="flex flex-col gap-3">
-          {/* Date & Time Row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col justify-center p-5 bg-card rounded-[28px] border border-border shadow-sm">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Calendar className="w-4 h-4" /></div>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{t('common.date')}</p>
-              </div>
-              <p className="text-[13px] font-black text-foreground leading-tight">{event.event_date}</p>
-            </div>
+          {/* ═══ Left Column: Description, Amenities, Reviews ═══ */}
+          <div className="lg:col-span-2 space-y-8 pb-32 lg:pb-8">
 
-            <div className="flex flex-col justify-center p-5 bg-card rounded-[28px] border border-border shadow-sm">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500"><Clock className="w-4 h-4" /></div>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{t('common.time')}</p>
-              </div>
-              <p className="text-[13px] font-black text-foreground leading-tight">{event.event_time}</p>
-            </div>
-          </div>
-
-          {/* Location Full Width with Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="flex items-center justify-between p-5 bg-slate-900 rounded-[28px] text-white shadow-xl shadow-slate-900/10 cursor-pointer active:scale-[0.98] transition-all group">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10 shrink-0 group-hover:bg-white/20 transition-colors">
-                    <MapPin className="w-6 h-6 text-emerald-400" />
-                  </div>
-                  <div className="min-w-0 pr-4 text-left">
-                    <p className="text-[10px] text-slate-300 font-bold uppercase tracking-wider mb-1">{t('event_detail.location')}</p>
-                    <h3 className="text-[13px] font-black text-white truncate">{event.location}</h3>
-                  </div>
-                </div>
-                <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                  <MapIcon className="w-5 h-5" />
-                </div>
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              align="end" 
-              className="w-56 rounded-3xl p-2 bg-slate-900 border-white/10 text-white shadow-2xl backdrop-blur-xl"
-            >
-              <DropdownMenuItem 
-                onClick={() => {
-                  navigator.clipboard.writeText(event.location);
-                  toast.success('Dirección copiada');
-                }}
-                className="flex items-center gap-3 p-3 rounded-2xl focus:bg-white/10 focus:text-white cursor-pointer transition-colors"
-              >
-                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                  <Copy className="w-4 h-4 text-slate-300" />
-                </div>
-                <span className="text-sm font-bold">Copiar dirección</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`, '_blank')}
-                className="flex items-center gap-3 p-3 rounded-2xl focus:bg-white/10 focus:text-white cursor-pointer transition-colors"
-              >
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                  <ExternalLink className="w-4 h-4 text-emerald-400" />
-                </div>
-                <span className="text-sm font-bold">Ver en el mapa</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Attendees circles */}
-          <div className="flex items-center justify-between px-2 pt-2">
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-3">
-                {followers.length > 0 ? (
-                  followers.map((avatar, i) => (
-                    <div key={i} className="w-10 h-10 rounded-full border-4 border-background overflow-hidden bg-muted shadow-sm">
-                      <img src={avatar} alt="Follower" className="w-full h-full object-cover" />
-                    </div>
-                  ))
-                ) : (
-                  [1, 2, 3].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full border-4 border-background bg-muted flex items-center justify-center">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                  ))
+            {/* Description */}
+            <div className="px-1">
+              <h2 className="text-lg lg:text-xl font-black text-foreground tracking-tight mb-3">{t('event_detail.description') || 'Descripción'}</h2>
+              <div className="relative">
+                <p 
+                  ref={descriptionRef}
+                  className={`text-muted-foreground text-[13px] lg:text-[15px] leading-relaxed font-medium transition-all duration-300 ${
+                    !isDescriptionExpanded ? 'line-clamp-[6]' : ''
+                  }`}
+                >
+                  {event.description}
+                </p>
+                {(isDescriptionTruncated || isDescriptionExpanded) && (
+                  <button 
+                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    className="text-primary text-[11px] font-black uppercase tracking-widest mt-2 hover:underline focus:outline-none"
+                  >
+                    {isDescriptionExpanded ? 'Ver menos' : 'Ver más'}
+                  </button>
                 )}
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-black text-foreground leading-none">{ticketsSold} {ticketsSold === 1 ? 'persona' : 'personas'}</span>
-                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Asistentes confirmados</span>
+            </div>
+
+            {/* Amenities Section */}
+            {eventAmenities.length > 0 && (
+              <div className="px-1 pb-4">
+                <h2 className="text-lg lg:text-xl font-black text-foreground tracking-tight mb-4">{t('event_detail.amenities') || 'Servicios Incluidos'}</h2>
+                <div className="flex flex-wrap gap-2.5">
+                  {eventAmenities.map((item: any, idx: number) => {
+                    const textColorClass = item.icon.props.className?.split(' ').find((c: string) => c.startsWith('text-')) || '';
+
+                    return (
+                      <div
+                        key={item.key}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-border bg-card text-foreground/80"
+                      >
+                        <div className={`flex items-center justify-center ${textColorClass}`}>
+                          {React.cloneElement(item.icon, { className: 'w-4 h-4' })}
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-wider">{item.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Discrete Reviews Summary */}
+            <div 
+              onClick={() => setIsReviewsDrawerOpen(true)}
+              className="mx-1 p-5 bg-secondary/20 rounded-[32px] border border-border flex items-center justify-between cursor-pointer hover:bg-secondary/40 transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-card flex items-center justify-center text-amber-500 shadow-sm border border-border">
+                  <Star className="w-6 h-6 fill-current" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-sm font-black text-foreground">
+                      {reviews.length > 0 
+                        ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 
+                        : '0.0'}
+                    </span>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} className={`w-3 h-3 ${s <= Math.round(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                    {reviews.length} {reviews.length === 1 ? 'Reseña' : 'Reseñas'} de la comunidad
+                  </p>
+                </div>
+              </div>
+              <ArrowLeft className="w-5 h-5 text-muted-foreground rotate-180" />
+            </div>
+          </div>
+
+          {/* ═══ Right Column: Info Sidebar ═══ */}
+          <div className="space-y-6 pb-24 lg:pb-8">
+
+            {/* Quick Info Card */}
+            <div className="bg-card rounded-[32px] border border-border shadow-sm overflow-hidden">
+              {/* Date */}
+              <div className="flex items-center gap-4 p-5 border-b border-border">
+                <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Calendar className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5">{t('common.date')}</p>
+                  <p className="text-sm font-black text-foreground">{event.event_date}</p>
+                </div>
+              </div>
+
+              {/* Time */}
+              <div className="flex items-center gap-4 p-5 border-b border-border">
+                <div className="w-11 h-11 rounded-2xl bg-rose-500/10 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5 text-rose-500" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5">{t('common.time')}</p>
+                  <p className="text-sm font-black text-foreground">{event.event_time}</p>
+                </div>
+              </div>
+
+              {/* Location */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center gap-4 p-5 cursor-pointer hover:bg-muted/50 transition-colors group">
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      <MapPin className="w-5 h-5 text-emerald-500" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5">{t('event_detail.location')}</p>
+                      <p className="text-sm font-black text-foreground truncate">{event.location}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-3xl p-2 bg-card border-border shadow-2xl">
+                  <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(event.location); toast.success('Dirección copiada'); }} className="flex items-center gap-3 p-3 rounded-2xl cursor-pointer">
+                    <Copy className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-bold">Copiar dirección</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`, '_blank')} className="flex items-center gap-3 p-3 rounded-2xl cursor-pointer">
+                    <ExternalLink className="w-4 h-4 text-emerald-500" />
+                    <span className="text-sm font-bold">Ver en el mapa</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Attendees */}
+            <div className="bg-card rounded-[32px] border border-border shadow-sm p-5">
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-3">{t('event_detail.attendees') || 'Asistentes'}</p>
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-3">
+                  {followers.length > 0 ? (
+                    followers.slice(0, 5).map((avatar: string, i: number) => (
+                      <div key={`follow-${i}`} className="w-10 h-10 rounded-full border-4 border-background overflow-hidden bg-muted shadow-sm">
+                        <img src={avatar} loading="lazy" alt="Follower" className="w-full h-full object-cover" />
+                      </div>
+                    ))
+                  ) : (
+                    [1, 2, 3].map(i => (
+                      <div key={`skeleton-${i}`} className="w-10 h-10 rounded-full border-4 border-background bg-muted flex items-center justify-center">
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    ))
+                  )}
+                </div>
+                <span className="text-sm font-black text-foreground">{ticketsSold} {ticketsSold === 1 ? 'asistente' : 'asistentes'}</span>
               </div>
             </div>
-          </div>
-        </div>
 
-
-
-        {/* Description */}
-        <div className="px-1">
-          <h2 className="text-lg font-black text-foreground tracking-tight mb-3">Descripción</h2>
-          <div className="relative">
-            <p 
-              ref={descriptionRef}
-              className={`text-muted-foreground text-[13px] leading-relaxed font-medium transition-all duration-300 ${
-                !isDescriptionExpanded ? 'line-clamp-[6]' : ''
-              }`}
+            {/* Organizer Card */}
+            <div
+              onClick={() => navigate(`/profile/u/${event.organizer_id}`)}
+              className="bg-card rounded-[32px] border border-border shadow-sm p-5 cursor-pointer hover:bg-secondary/30 transition-all"
             >
-              {event.description}
-            </p>
-            {(isDescriptionTruncated || isDescriptionExpanded) && (
-              <button 
-                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                className="text-primary text-[11px] font-black uppercase tracking-widest mt-2 hover:underline focus:outline-none"
-              >
-                {isDescriptionExpanded ? 'Ver menos' : 'Ver más'}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Organizer Section */}
-        <div 
-          onClick={() => navigate(`/profile/u/${event.organizer_id}`)}
-          className="flex items-center justify-between p-6 bg-secondary/30 rounded-[40px] border border-border cursor-pointer hover:bg-secondary/50 transition-all active:scale-[0.98]"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-card border border-border p-1">
-              <img src={organizerProfile?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100'} alt="Organizer" className="w-full h-full object-cover rounded-xl" />
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-3">{t('event_detail.organizer')}</p>
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-muted border border-border shrink-0">
+                  <img src={organizerProfile?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100'} loading="lazy" alt="Organizer" className="w-full h-full object-cover rounded-2xl" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-black text-foreground truncate">{organizerProfile?.full_name || 'Organizador'}</h3>
+                  <p className="text-xs text-muted-foreground font-medium">{t('event_detail.organizer_label') || 'Organizador del evento'}</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">{t('event_detail.organizer')}</p>
-              <h3 className="text-sm font-black text-foreground leading-tight">{organizerProfile?.full_name || 'Organizador'}</h3>
+
+            {/* Price & Ticket Card */}
+            <div className="bg-card rounded-[32px] border border-border shadow-sm p-5">
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-2">{t('event_detail.tickets') || 'Entradas'}</p>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-2xl font-black text-foreground">
+                  {isFree ? 'Gratis' : `$${event.price}`}
+                </span>
+                {event.max_attendees && (
+                  <Badge variant="secondary" className="rounded-full bg-primary/10 text-primary border-none font-bold text-[10px] px-3 py-1">
+                    {Math.max(0, event.max_attendees - ticketsSold)} {t('event_detail.available') || 'disponibles'}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => isFree ? handleFreeTicket() : navigate(`/checkout/${id}`)}
+                  className="flex-1 h-12 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg bg-foreground hover:opacity-90 text-background"
+                >
+                  {isFree ? (hasTicket ? 'Adquirida' : 'Obtener gratis') : 'Comprar entradas'}
+                </Button>
+                {hasTicket && (
+                  <Button
+                    onClick={() => navigate(`/ticket/${ticketId}`)}
+                    variant="outline"
+                    className="h-12 px-4 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                  >
+                    <Ticket className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1115,60 +1194,6 @@ const EventDetailPage = () => {
           </DrawerContent>
         </Drawer>
 
-        {/* Amenities Section */}
-        {eventAmenities.length > 0 && (
-          <div className="px-1 pb-4">
-            <h2 className="text-lg font-black text-foreground tracking-tight mb-4">Servicios Incluidos</h2>
-            <div className="flex flex-wrap gap-2.5">
-              {eventAmenities.map((item: any, idx: number) => {
-                const textColorClass = item.icon.props.className?.split(' ').find((c: string) => c.startsWith('text-')) || '';
-
-                return (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-border bg-card text-foreground/80"
-                  >
-                    <div className={`flex items-center justify-center ${textColorClass}`}>
-                      {React.cloneElement(item.icon, { className: 'w-4 h-4' })}
-                    </div>
-                    <span className="text-[11px] font-black uppercase tracking-wider">{item.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Discrete Reviews Summary */}
-        <div 
-          onClick={() => setIsReviewsDrawerOpen(true)}
-          className="mx-1 p-5 bg-secondary/20 rounded-[32px] border border-border flex items-center justify-between cursor-pointer hover:bg-secondary/40 transition-all active:scale-[0.98]"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-card flex items-center justify-center text-amber-500 shadow-sm border border-border">
-              <Star className="w-6 h-6 fill-current" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-sm font-black text-foreground">
-                  {reviews.length > 0 
-                    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 
-                    : '0.0'}
-                </span>
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} className={`w-3 h-3 ${s <= Math.round(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
-                  ))}
-                </div>
-              </div>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                {reviews.length} {reviews.length === 1 ? 'Reseña' : 'Reseñas'} de la comunidad
-              </p>
-            </div>
-          </div>
-          <ArrowLeft className="w-5 h-5 text-muted-foreground rotate-180" />
-        </div>
-
         {/* Reviews Drawer */}
         <Drawer open={isReviewsDrawerOpen} onOpenChange={setIsReviewsDrawerOpen}>
           <DrawerContent className="max-h-[90vh] rounded-t-[40px] border-none shadow-2xl">
@@ -1228,7 +1253,7 @@ const EventDetailPage = () => {
                     <div key={review.id} className="pb-6 border-b border-border/50 last:border-0">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <img src={review.profiles?.avatar_url || 'https://i.pravatar.cc/100'} alt={review.profiles?.full_name} className="w-10 h-10 rounded-xl object-cover border border-border" />
+                          <img src={review.profiles?.avatar_url || 'https://i.pravatar.cc/100'} loading="lazy" alt={review.profiles?.full_name} className="w-10 h-10 rounded-xl object-cover border border-border" />
                           <div>
                             <h4 className="text-[13px] font-black text-foreground leading-tight">{review.profiles?.full_name || 'Usuario'}</h4>
                             <div className="flex gap-0.5 mt-0.5">
@@ -1258,11 +1283,9 @@ const EventDetailPage = () => {
           </DrawerContent>
         </Drawer>
 
-        {/* Floating Bottom Bar (Spacing buffer) */}
-        <div className="h-4"></div>
-
-        {/* Floating Bottom Bar */}
-        <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/95 backdrop-blur-xl border-t border-border z-50 flex items-center justify-between gap-4">
+        {/* Floating Bottom Bar (mobile only) */}
+        <div className="h-4 lg:hidden"></div>
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/95 backdrop-blur-xl border-t border-border z-50 lg:hidden flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">Entradas</span>
             <div className="flex items-center gap-2">
@@ -1278,7 +1301,6 @@ const EventDetailPage = () => {
           </div>
           
           <div className="flex gap-2 flex-1 max-w-md">
-            {/* Chat Button */}
             <Button
               onClick={() => {
                 if (!hasTicket) {
@@ -1294,7 +1316,6 @@ const EventDetailPage = () => {
               <span className="text-[8px]">Chat</span>
             </Button>
 
-            {/* View Tickets Button */}
             <Button
               onClick={() => {
                 if (hasTicket && ticketId) {
@@ -1311,7 +1332,6 @@ const EventDetailPage = () => {
               <span className="text-[8px]">Mis Tickets</span>
             </Button>
 
-            {/* Buy Button */}
             <Button
               onClick={() => isFree ? handleFreeTicket() : navigate(`/checkout/${id}`)}
               className={`flex-[2] h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl transition-all ${isFree

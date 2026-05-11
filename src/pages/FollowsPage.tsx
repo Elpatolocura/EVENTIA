@@ -161,7 +161,7 @@ const FollowsPage = () => {
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-4 py-4 flex items-center gap-4">
         <button 
           onClick={goBack}
-          className="p-2 hover:bg-secondary rounded-full transition-colors"
+          className="lg:hidden p-2 hover:bg-secondary rounded-full transition-colors"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
@@ -217,7 +217,7 @@ const FollowsPage = () => {
                   className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 overflow-hidden flex items-center justify-center cursor-pointer"
                 >
                   {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt={profile.full_name || ''} className="w-full h-full object-cover" />
+                    <img src={profile.avatar_url} loading="lazy" alt={profile.full_name || ''} className="w-full h-full object-cover" />
                   ) : (
                     <User className="w-6 h-6 text-primary/40" />
                   )}

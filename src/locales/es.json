@@ -105,6 +105,12 @@
     "none": "Ninguno",
     "confirm_password": "Confirmar Contraseña",
     "password_updated": "Contraseña actualizada con éxito",
+    "logged_out": "Sesión cerrada correctamente",
+    "confirm_logout_title": "¿Cerrar sesión?",
+    "confirm_logout_desc": "¿Estás seguro de que deseas cerrar sesión? Deberás iniciar sesión nuevamente para acceder a tu cuenta.",
+    "new_password": "Nueva contraseña",
+    "password_length_error": "La contraseña debe tener al menos 6 caracteres",
+    "password_mismatch": "Las contraseñas no coinciden",
     "appearance": {
       "title": "Apariencia",
       "color_updated": "Color de acento actualizado",
