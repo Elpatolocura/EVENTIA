@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,6 +11,7 @@ import NotificationManager from "@/components/NotificationManager";
 import ThemeHandler from "@/components/ThemeHandler";
 import BackButtonHandler from "@/components/BackButtonHandler";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
@@ -41,8 +42,6 @@ const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const FollowsPage = lazy(() => import("@/pages/FollowsPage"));
 const ReportPage = lazy(() => import("@/pages/ReportPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
-
-const queryClient = new QueryClient();
 
 const PageLoader = () => (
   <div className="min-h-screen bg-background flex items-center justify-center pb-24">

@@ -3,4 +3,9 @@ import App from "./App.tsx";
 import "./index.css";
 import "./i18n";
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = document.getElementById("root")!;
+if (root.hasChildNodes()) {
+  createRoot(root).render(<App />);
+} else {
+  createRoot(root).render(<App />);
+}

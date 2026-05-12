@@ -1,47 +1,44 @@
 import React, { memo } from 'react';
-import { EventData } from '@/types';
 import { Heart, MapPin, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '@/lib/supabase';
 
-interface EventCardProps {
-  event: EventData;
+const OptimizedImage = memo(({ src, alt }: { src: string; alt: string }) => (
+  <img
+    src={src}
+    alt={alt}
+    className="w-full h-full object-cover"
+    loading="lazy"
+    decoding="async"
+    width={400}
+    height={300}
+  />
+));
+
+const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavoriteToggle }: {
+  event: any;
   variant?: 'large' | 'small';
   isFavorite?: boolean;
   onFavoriteToggle?: (e: React.MouseEvent) => void;
-}
-
-const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavoriteToggle }: EventCardProps) => {
+}) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-
 
   if (variant === 'small') {
     return (
       <button
         onClick={() => navigate(`/event/${event.id}`)}
-        className="bg-card rounded-2xl p-3.5 border border-border text-left min-w-[150px] flex-shrink-0 transition-shadow hover:shadow-md will-change-transform"
+        className="bg-card rounded-2xl p-3.5 border border-border text-left min-w-[150px] flex-shrink-0 transition-shadow hover:shadow-md"
       >
         <div className="h-16 w-full bg-secondary rounded-xl overflow-hidden mb-2">
           {event.image_url ? (
-            <img
-              src={event.image_url}
-              alt={event.title}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
+            <OptimizedImage src={event.image_url} alt={event.title} />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-2xl">
-              {event.emoji || '📅'}
-            </div>
+            <div className="w-full h-full flex items-center justify-center text-2xl">{event.emoji || '📅'}</div>
           )}
         </div>
         <p className="font-semibold text-foreground text-sm leading-tight truncate">{event.title}</p>
-        <p className="text-muted-foreground text-[10px] mt-1">
-          {event.event_date || event.date}
-        </p>
+        <p className="text-muted-foreground text-[10px] mt-1">{event.event_date || event.date}</p>
         {event.distance_km !== undefined && event.distance_km < 999999 && (
           <div className="flex items-center gap-1 mt-1 text-primary">
             <MapPin className="w-3 h-3" />
@@ -55,17 +52,11 @@ const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavorite
   return (
     <button
       onClick={() => navigate(`/event/${event.id}`)}
-      className="bg-card rounded-2xl overflow-hidden border border-border text-left w-full transition-shadow hover:shadow-md will-change-transform"
+      className="bg-card rounded-2xl overflow-hidden border border-border text-left w-full transition-shadow hover:shadow-md"
     >
       <div className="h-40 bg-secondary flex items-center justify-center text-5xl relative overflow-hidden">
         {event.image_url ? (
-          <img
-            src={event.image_url}
-            alt={event.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            decoding="async"
-          />
+          <OptimizedImage src={event.image_url} alt={event.title} />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-foreground/80 to-foreground/40 text-white">
             {event.emoji || '📅'}
@@ -83,23 +74,14 @@ const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavorite
           )}
         </div>
         <div className="absolute top-3 right-3">
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onFavoriteToggle?.(e);
-            }}
-            role="button"
-            tabIndex={0}
+          <button
+            onClick={(e) => { e.stopPropagation(); onFavoriteToggle?.(e); }}
             className={`w-10 h-10 rounded-xl backdrop-blur-md flex items-center justify-center transition-all border cursor-pointer ${
-              isFavProp
-                ? 'bg-red-500 border-red-500 text-white'
-                : 'bg-white/10 border-white/10 text-white hover:bg-white hover:text-red-500'
+              isFavProp ? 'bg-red-500 border-red-500 text-white' : 'bg-white/10 border-white/10 text-white hover:bg-white hover:text-red-500'
             }`}
           >
-            <Heart
-              className={`w-4 h-4 ${isFavProp ? 'fill-current' : ''}`}
-            />
-          </div>
+            <Heart className={`w-4 h-4 ${isFavProp ? 'fill-current' : ''}`} />
+          </button>
         </div>
       </div>
       <div className="p-4">
@@ -110,17 +92,11 @@ const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavorite
               <span>{event.event_date || event.date}</span>
               <span>·</span>
               <span>{event.event_time || event.time}</span>
-              {event.location && (
-                <>
-                  <span>·</span>
-                  <span className="truncate max-w-[100px]">{event.location.split(',')[0]}</span>
-                </>
-              )}
+              {event.location && <><span>·</span><span className="truncate max-w-[100px]">{event.location.split(',')[0]}</span></>}
             </p>
           </div>
           <div className="bg-accent/10 text-accent px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0 ml-2">
             {!event.price || Number(event.price) === 0 ? t('common.free') : `$${event.price}`}
-
           </div>
         </div>
         <div className="flex justify-between items-center mt-3">
@@ -137,19 +113,16 @@ const EventCard = ({ event, variant = 'large', isFavorite: isFavProp, onFavorite
   );
 };
 
-// Memoize: skip re-renders if favorite state and key event fields haven't changed.
-export default memo(EventCard, (prev, next) => {
-  return (
-    prev.event.id === next.event.id &&
-    prev.event.title === next.event.title &&
-    prev.event.image_url === next.event.image_url &&
-    prev.event.attendees_count === next.event.attendees_count &&
-    prev.event.attendees === next.event.attendees &&
-    prev.event.distance_km === next.event.distance_km &&
-    prev.event.price === next.event.price &&
-    prev.event.event_date === next.event.event_date &&
-    prev.event.event_time === next.event.event_time &&
-    prev.isFavorite === next.isFavorite &&
-    prev.variant === next.variant
-  );
-});
+export default memo(EventCard, (prev, next) => (
+  prev.event.id === next.event.id &&
+  prev.event.title === next.event.title &&
+  prev.event.image_url === next.event.image_url &&
+  prev.event.attendees_count === next.event.attendees_count &&
+  prev.event.attendees === next.event.attendees &&
+  prev.event.distance_km === next.event.distance_km &&
+  prev.event.price === next.event.price &&
+  prev.event.event_date === next.event.event_date &&
+  prev.event.event_time === next.event.event_time &&
+  prev.isFavorite === next.isFavorite &&
+  prev.variant === next.variant
+));

@@ -20,7 +20,9 @@ i18n
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage']
-    }
+    },
+    returnNull: false,
+    returnEmptyString: false,
   });
 
 export default i18n;
