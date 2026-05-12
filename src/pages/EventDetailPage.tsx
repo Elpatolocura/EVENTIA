@@ -174,7 +174,7 @@ const EventDetailPage = () => {
         .select('user_id')
         .eq('event_id', id)
         .eq('status', 'active')
-        .order('created_at', { ascending: false })
+        .order('purchase_date', { ascending: false })
         .limit(4);
       
       if (ticketsData && ticketsData.length > 0) {
